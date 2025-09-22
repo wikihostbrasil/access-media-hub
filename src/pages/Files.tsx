@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, Fragment } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -135,70 +135,69 @@ const Files = () => {
             </TableHeader>
             <TableBody>
               {filteredFiles.map((file) => (
-                <TableRow key={file.id}>
-                   <TableCell className="flex items-center gap-2">
-                     <FileIcon className="h-4 w-4" />
-                     <div className="flex-1">
-                       <div className="font-medium">{file.title}</div>
-                       {file.description && (
-                         <div className="text-sm text-muted-foreground">
-                           {file.description}
-                         </div>
-                       )}
-                       {isAudioFile(file.title, file.file_type) && (
-                         <div className="mt-2">
-                           <AudioPlayer 
-                             fileUrl={file.file_url}
-                             fileName={file.title}
-                             fileId={file.id}
-                           />
-                         </div>
-                       )}
-                     </div>
-                   </TableCell>
-                  <TableCell>
-                    <Badge variant="secondary">
-                      {getFileExtension(file.title)}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{formatFileSize(file.file_size)}</TableCell>
-                  <TableCell>
-                    <span className="font-medium">
-                      0
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    Usuário
-                  </TableCell>
-                  <TableCell>
-                    {format(new Date(file.created_at), "dd/MM/yyyy", { locale: ptBR })}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => handleShowDownloads(file.id, file.title)}
-                      >
-                        <BarChart3 className="h-3 w-3" />
-                      </Button>
-                      <Button size="sm" variant="outline" onClick={() => handleDirectDownload(file)}>
-                        <Download className="h-3 w-3" />
-                      </Button>
-                      <Button size="sm" variant="outline">
-                        <Edit className="h-3 w-3" />
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => handleDeleteFile(file.id, file.title)}
-                        disabled={deleteFile.isPending}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
+                <Fragment key={file.id}>
+                  <TableRow>
+                    <TableCell className="flex items-center gap-2">
+                      <FileIcon className="h-4 w-4" />
+                      <div className="flex-1">
+                        <div className="font-medium">{file.title}</div>
+                        {file.description && (
+                          <div className="text-sm text-muted-foreground">
+                            {file.description}
+                          </div>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary">
+                        {getFileExtension(file.title)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{formatFileSize(file.file_size)}</TableCell>
+                    <TableCell>
+                      <span className="font-medium">0</span>
+                    </TableCell>
+                    <TableCell>Usuário</TableCell>
+                    <TableCell>
+                      {format(new Date(file.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleShowDownloads(file.id, file.title)}
+                        >
+                          <BarChart3 className="h-3 w-3" />
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => handleDirectDownload(file)}>
+                          <Download className="h-3 w-3" />
+                        </Button>
+                        <Button size="sm" variant="outline">
+                          <Edit className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleDeleteFile(file.id, file.title)}
+                          disabled={deleteFile.isPending}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+
+                  {isAudioFile(file.title, file.file_type) && (
+                    <TableRow className="bg-muted/20">
+                      <TableCell colSpan={7} className="pt-0">
+                        <div className="mt-2">
+                          <AudioPlayer fileUrl={file.file_url} fileName={file.title} fileId={file.id} />
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </Fragment>
               ))}
               {filteredFiles.length === 0 && (
                 <TableRow>
