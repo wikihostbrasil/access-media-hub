@@ -4,7 +4,7 @@ class Environment {
     public static function load() {
         // Configurações de ambiente
         $config = [
-            'JWT_SECRET' => $_ENV['JWT_SECRET'] ?? 'arquivo_manager_jwt_secret_key_' . bin2hex(random_bytes(32)),
+            'JWT_SECRET' => $_ENV['JWT_SECRET'] ?? 'arquivo_manager_jwt_secret_key_default',
             'API_BASE_URL' => $_ENV['API_BASE_URL'] ?? 'http://localhost/api',
             'UPLOAD_PATH' => $_ENV['UPLOAD_PATH'] ?? '../uploads/',
             'MAX_FILE_SIZE' => $_ENV['MAX_FILE_SIZE'] ?? 50 * 1024 * 1024, // 50MB

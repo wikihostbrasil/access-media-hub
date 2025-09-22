@@ -94,6 +94,7 @@ function AuthenticatedApp() {
               {profile?.role === 'admin' && <Route path="/reports" element={<Reports />} />}
               {profile?.role !== 'user' && <Route path="/settings" element={<Settings />} />}
               <Route path="/profile" element={<Profile />} />
+              <Route path="/auth" element={<Navigate to="/" replace />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </main>

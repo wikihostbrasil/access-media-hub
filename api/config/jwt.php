@@ -11,7 +11,7 @@ class JWTHandler {
     private $expiration_time;
 
     public function __construct() {
-        $this->secret_key = $_ENV['JWT_SECRET'] ?? 'arquivo_manager_jwt_secret_key_' . bin2hex(random_bytes(32));
+        $this->secret_key = $_ENV['JWT_SECRET'] ?? 'arquivo_manager_jwt_secret_key_default';
         $this->issued_at = time();
         $this->expiration_time = $this->issued_at + (24 * 60 * 60); // 24 hours
     }
