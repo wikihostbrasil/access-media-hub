@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 export default function Auth() {
   const { user, signIn, signUp } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
 
   if (user) {
@@ -55,16 +56,22 @@ export default function Auth() {
     const { error } = await signUp(email, password, fullName);
     
     if (error) {
-      toast({
-        title: "Erro no cadastro",
-        description: error.message,
-        variant: "destructive",
-      });
+      // Verificar se é erro de usuário já existente
+      if (error.message.includes("already registered") || error.message.includes("already exists")) {
+        toast({
+          title: "Usuário já cadastrado",
+          description: "Esta conta já existe. Faça login com suas credenciais.",
+        });
+      } else {
+        toast({
+          title: "Erro no cadastro",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
     } else {
-      toast({
-        title: "Cadastro realizado com sucesso!",
-        description: "Verifique seu email para confirmar a conta",
-      });
+      // Redirecionar para página de sucesso
+      navigate("/signup-success");
     }
     
     setLoading(false);

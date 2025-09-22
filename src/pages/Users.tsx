@@ -10,10 +10,13 @@ import { useUsers, useUpdateUserRole } from "@/hooks/useUsers";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { InviteUserDialog } from "@/components/dialogs/InviteUserDialog";
+import { EditUserDialog } from "@/components/dialogs/EditUserDialog";
 
 const Users = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [openInvite, setOpenInvite] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [openEdit, setOpenEdit] = useState(false);
   const { data: users, isLoading } = useUsers();
   const updateUserRole = useUpdateUserRole();
 
@@ -170,6 +173,16 @@ const Users = () => {
                       <Button 
                         size="sm" 
                         variant="outline"
+                        onClick={() => {
+                          setSelectedUser(user);
+                          setOpenEdit(true);
+                        }}
+                      >
+                        Editar
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
                         onClick={() => handleRoleChange(user.user_id, user.role === "admin" ? "user" : "admin")}
                         disabled={updateUserRole.isPending}
                       >
@@ -192,6 +205,11 @@ const Users = () => {
       </Card>
 
       <InviteUserDialog open={openInvite} onOpenChange={setOpenInvite} />
+      <EditUserDialog 
+        open={openEdit} 
+        onOpenChange={setOpenEdit}
+        user={selectedUser}
+      />
     </div>
   );
 };

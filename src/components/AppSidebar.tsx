@@ -55,7 +55,8 @@ export function AppSidebar() {
     { title: "Categorias", url: "/categories", icon: FolderOpen, roles: ['admin', 'operator'] },
     { title: "Downloads", url: "/downloads", icon: Download, roles: ['admin'] },
     { title: "Relatórios", url: "/reports", icon: BarChart3, roles: ['admin'] },
-    { title: "Configurações", url: "/settings", icon: Settings, roles: ['admin', 'operator', 'user'] },
+    { title: "Configurações", url: "/settings", icon: Settings, roles: ['admin', 'operator'] },
+    { title: "Meu Perfil", url: "/profile", icon: Users, roles: ['admin', 'operator', 'user'] },
   ];
 
   const filteredItems = menuItems.filter(item => item.roles.includes(userRole));

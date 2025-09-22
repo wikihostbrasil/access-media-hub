@@ -9,10 +9,13 @@ import { useGroups, useDeleteGroup } from "@/hooks/useGroups";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CreateGroupDialog } from "@/components/dialogs/CreateGroupDialog";
+import { ManageGroupMembersDialog } from "@/components/dialogs/ManageGroupMembersDialog";
 
 const Groups = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [openCreate, setOpenCreate] = useState(false);
+  const [selectedGroup, setSelectedGroup] = useState<any>(null);
+  const [openMembers, setOpenMembers] = useState(false);
   const { data: groups, isLoading } = useGroups();
   const deleteGroup = useDeleteGroup();
 
@@ -137,7 +140,14 @@ const Groups = () => {
                       <Button size="sm" variant="outline">
                         Editar
                       </Button>
-                      <Button size="sm" variant="outline">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => {
+                          setSelectedGroup(group);
+                          setOpenMembers(true);
+                        }}
+                      >
                         Membros
                       </Button>
                       <Button 
@@ -165,6 +175,11 @@ const Groups = () => {
       </Card>
 
       <CreateGroupDialog open={openCreate} onOpenChange={setOpenCreate} />
+      <ManageGroupMembersDialog 
+        open={openMembers} 
+        onOpenChange={setOpenMembers}
+        group={selectedGroup}
+      />
     </div>
   );
 };

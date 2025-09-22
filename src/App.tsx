@@ -22,6 +22,8 @@ import Categories from "@/pages/Categories";
 import Downloads from "@/pages/Downloads";
 import Reports from "@/pages/Reports";
 import Settings from "@/pages/Settings";
+import Profile from "@/pages/Profile";
+import SignupSuccess from "@/pages/SignupSuccess";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -48,6 +50,7 @@ function AuthenticatedApp() {
       <>
         <Routes>
           <Route path="/auth" element={<Auth />} />
+          <Route path="/signup-success" element={<SignupSuccess />} />
           <Route path="*" element={<Navigate to="/auth" replace />} />
         </Routes>
       </>
@@ -85,6 +88,7 @@ function AuthenticatedApp() {
               <Route path="/downloads" element={<Downloads />} />
               <Route path="/reports" element={<Reports />} />
               <Route path="/settings" element={<Settings />} />
+              <Route path="/profile" element={<Profile />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </main>
