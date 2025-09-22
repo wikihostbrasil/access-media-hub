@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { UserPlus, Search, Shield, User, Settings } from "lucide-react";
-import { useUsers, useUpdateUserRole } from "@/hooks/useUsers";
+import { useUsers, useUpdateUserRole, useToggleUserStatus } from "@/hooks/useUsers";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { InviteUserDialog } from "@/components/dialogs/InviteUserDialog";
@@ -19,6 +19,7 @@ const Users = () => {
   const [openEdit, setOpenEdit] = useState(false);
   const { data: users, isLoading } = useUsers();
   const updateUserRole = useUpdateUserRole();
+  const toggleUserStatus = useToggleUserStatus();
 
   const filteredUsers = users?.filter(user =>
     user.full_name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -51,9 +52,14 @@ const Users = () => {
   };
 
   const handleRoleChange = (userId: string, newRole: "admin" | "operator" | "user") => {
-    if (window.confirm(`Tem certeza que deseja alterar o papel do usuário?`)) {
+    if (confirm(`Tem certeza que deseja alterar o papel deste usuário para ${newRole}?`)) {
       updateUserRole.mutate({ userId, role: newRole });
     }
+  };
+
+  const handleEditUser = (user: any) => {
+    setSelectedUser(user);
+    setOpenEdit(true);
   };
 
   if (isLoading) {
@@ -64,13 +70,17 @@ const Users = () => {
     );
   }
 
+  const totalUsers = users?.length || 0;
+  const adminCount = users?.filter(u => u.role === "admin").length || 0;
+  const operatorCount = users?.filter(u => u.role === "operator").length || 0;
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold">Gerenciar Usuários</h1>
           <p className="text-muted-foreground">
-            Gerencie usuários, permissões e acessos do sistema
+            Controle de acesso e permissões dos usuários
           </p>
         </div>
         <Button onClick={() => setOpenInvite(true)}>
@@ -79,14 +89,15 @@ const Users = () => {
         </Button>
       </div>
 
+      {/* Estatísticas */}
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Usuários</CardTitle>
+            <CardTitle className="text-sm font-medium">Total de Usuários</CardTitle>
             <User className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{users?.length || 0}</div>
+            <div className="text-2xl font-bold">{totalUsers}</div>
           </CardContent>
         </Card>
         
@@ -96,9 +107,7 @@ const Users = () => {
             <Shield className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {users?.filter(u => u.role === "admin").length || 0}
-            </div>
+            <div className="text-2xl font-bold">{adminCount}</div>
           </CardContent>
         </Card>
         
@@ -108,18 +117,17 @@ const Users = () => {
             <Settings className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {users?.filter(u => u.role === "operator").length || 0}
-            </div>
+            <div className="text-2xl font-bold">{operatorCount}</div>
           </CardContent>
         </Card>
       </div>
 
+      {/* Busca */}
       <Card>
         <CardHeader>
           <CardTitle>Lista de Usuários</CardTitle>
           <CardDescription>
-            Gerencie permissões e informações dos usuários
+            Gerencie os usuários e suas permissões
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -137,64 +145,78 @@ const Users = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Usuário</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>WhatsApp</TableHead>
                 <TableHead>Papel</TableHead>
-                <TableHead>Notificações</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead>Criado em</TableHead>
                 <TableHead>Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredUsers.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell className="flex items-center gap-3">
-                    <Avatar>
-                      <AvatarFallback>
-                        {user.full_name.split(" ").map(n => n[0]).join("")}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <div className="font-medium">{user.full_name}</div>
-                      <div className="text-sm text-muted-foreground">
-                        ID: {user.user_id.slice(0, 8)}...
+              {filteredUsers.length > 0 ? (
+                filteredUsers.map((user) => (
+                  <TableRow key={user.id}>
+                    <TableCell className="flex items-center gap-3">
+                      <Avatar>
+                        <AvatarFallback>
+                          {user.full_name.split(" ").map(n => n[0]).join("")}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <div className="font-medium">{user.full_name}</div>
+                        <div className="text-sm text-muted-foreground">
+                          ID: {user.user_id.slice(0, 8)}...
+                        </div>
                       </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>{getRoleBadge(user.role)}</TableCell>
-                  <TableCell>
-                    <Badge variant={user.receive_notifications ? "default" : "secondary"}>
-                      {user.receive_notifications ? "Ativadas" : "Desativadas"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {format(new Date(user.created_at), "dd/MM/yyyy", { locale: ptBR })}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => {
-                          setSelectedUser(user);
-                          setOpenEdit(true);
-                        }}
-                      >
-                        Editar
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => handleRoleChange(user.user_id, user.role === "admin" ? "user" : "admin")}
-                        disabled={updateUserRole.isPending}
-                      >
-                        {user.role === "admin" ? "Remover Admin" : "Tornar Admin"}
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {filteredUsers.length === 0 && (
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      Email protegido
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {user.whatsapp || "Não informado"}
+                    </TableCell>
+                    <TableCell>{getRoleBadge(user.role)}</TableCell>
+                    <TableCell>
+                      <Badge variant={user.active ? "default" : "destructive"}>
+                        {user.active ? "Ativo" : "Bloqueado"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {format(new Date(user.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => handleEditUser(user)}
+                        >
+                          Editar
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => handleRoleChange(user.user_id, user.role === "admin" ? "user" : "admin")}
+                          disabled={updateUserRole.isPending}
+                        >
+                          {user.role === "admin" ? "Remover Admin" : "Tornar Admin"}
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant={user.active ? "destructive" : "default"}
+                          onClick={() => toggleUserStatus.mutate({ userId: user.user_id, active: !user.active })}
+                          disabled={toggleUserStatus.isPending}
+                        >
+                          {user.active ? "Bloquear" : "Ativar"}
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                     Nenhum usuário encontrado
                   </TableCell>
                 </TableRow>
@@ -207,7 +229,7 @@ const Users = () => {
       <InviteUserDialog open={openInvite} onOpenChange={setOpenInvite} />
       <EditUserDialog 
         open={openEdit} 
-        onOpenChange={setOpenEdit}
+        onOpenChange={setOpenEdit} 
         user={selectedUser}
       />
     </div>

@@ -118,6 +118,12 @@ export default function Auth() {
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading ? "Entrando..." : "Entrar"}
                 </Button>
+                
+                <div className="text-center">
+                  <a href="/forgot-password" className="text-sm text-muted-foreground hover:text-foreground">
+                    Esqueceu sua senha?
+                  </a>
+                </div>
               </form>
             </TabsContent>
             

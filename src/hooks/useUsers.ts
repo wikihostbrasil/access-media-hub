@@ -8,6 +8,8 @@ export interface UserProfile {
   full_name: string;
   role: "admin" | "operator" | "user";
   receive_notifications: boolean;
+  whatsapp?: string;
+  active: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -51,6 +53,36 @@ export const useUpdateUserRole = () => {
       toast({
         title: "Erro",
         description: `Erro ao atualizar papel: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
+};
+
+export const useToggleUserStatus = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ userId, active }: { userId: string; active: boolean }) => {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ active })
+        .eq("user_id", userId);
+
+      if (error) throw error;
+    },
+    onSuccess: (_, { active }) => {
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+      toast({
+        title: "Sucesso",
+        description: `Usuário ${active ? "ativado" : "bloqueado"} com sucesso!`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro",
+        description: `Erro ao alterar status: ${error.message}`,
         variant: "destructive",
       });
     },
