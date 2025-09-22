@@ -56,16 +56,27 @@ export default function Profile() {
         whatsapp: profile.whatsapp || "",
         receive_notifications: profile.receive_notifications,
       });
+    } else if (user && !isLoading) {
+      // Initialize form with user email data if no profile exists
+      setFormData({
+        full_name: user.user_metadata?.full_name || "",
+        whatsapp: "",
+        receive_notifications: true,
+      });
     }
-  }, [profile]);
+  }, [profile, user, isLoading]);
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
       if (!user) throw new Error("Usuário não autenticado");
       
+      // Use upsert to create profile if it doesn't exist
       const { error } = await supabase
         .from("profiles")
-        .update(data)
+        .upsert({
+          user_id: user.id,
+          ...data,
+        })
         .eq("user_id", user.id);
       
       if (error) throw error;
@@ -207,27 +218,25 @@ export default function Profile() {
         </CardContent>
       </Card>
 
-      {profile && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Informações da Conta</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Conta criada em:</span>
-              <span>{new Date(profile.created_at).toLocaleDateString("pt-BR")}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Última atualização:</span>
-              <span>{new Date(profile.updated_at).toLocaleDateString("pt-BR")}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">ID do usuário:</span>
-              <span className="font-mono text-sm">{profile.user_id.slice(0, 8)}...</span>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      <Card>
+        <CardHeader>
+          <CardTitle>Informações da Conta</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Conta criada em:</span>
+            <span>{profile ? new Date(profile.created_at).toLocaleDateString("pt-BR") : "Não disponível"}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Última atualização:</span>
+            <span>{profile ? new Date(profile.updated_at).toLocaleDateString("pt-BR") : "Não disponível"}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">ID do usuário:</span>
+            <span className="font-mono text-sm">{user?.id?.slice(0, 8)}...</span>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
