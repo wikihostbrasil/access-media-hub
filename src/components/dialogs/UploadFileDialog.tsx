@@ -114,7 +114,7 @@ export const UploadFileDialog = ({ open, onOpenChange, onUploaded }: UploadFileD
         <div className="space-y-4">
           <div className="grid gap-2">
             <Label htmlFor="file-input">Arquivo</Label>
-            <Input id="file-input" type="file" onChange={(e) => setFile(e.target.files?.[0] || null)} />
+            <Input id="file-input" type="file" onChange={(e) => { const f = e.target.files?.[0] || null; setFile(f); if (f) setTitle(f.name); }} />
           </div>
 
           <div className="grid gap-2">

@@ -8,12 +8,17 @@ import { useCategories, useDeleteCategory } from "@/hooks/useCategories";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CreateCategoryDialog } from "@/components/dialogs/CreateCategoryDialog";
+import { EditCategoryDialog } from "@/components/dialogs/EditCategoryDialog";
+import { useNavigate } from "react-router-dom";
 
 const Categories = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [openCreate, setOpenCreate] = useState(false);
   const { data: categories, isLoading } = useCategories();
   const deleteCategory = useDeleteCategory();
+  const [openEdit, setOpenEdit] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<{ id: string; name: string; description?: string | null } | null>(null);
+  const navigate = useNavigate();
 
   const filteredCategories = categories?.filter(category =>
     category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -138,10 +143,10 @@ const Categories = () => {
                     Criado em {format(new Date(category.created_at), "dd/MM/yyyy", { locale: ptBR })}
                   </div>
                   <div className="flex gap-2">
-                    <Button size="sm" variant="outline" className="flex-1">
+                    <Button size="sm" variant="outline" className="flex-1" onClick={() => { setEditingCategory({ id: category.id, name: category.name, description: category.description }); setOpenEdit(true); }}>
                       Editar
                     </Button>
-                    <Button size="sm" variant="outline" className="flex-1">
+                    <Button size="sm" variant="outline" className="flex-1" onClick={() => navigate(`/files?q=${encodeURIComponent(category.name)}`)}>
                       Ver Arquivos
                     </Button>
                     <Button 
@@ -166,6 +171,7 @@ const Categories = () => {
       </Card>
 
       <CreateCategoryDialog open={openCreate} onOpenChange={setOpenCreate} />
+      <EditCategoryDialog open={openEdit} onOpenChange={setOpenEdit} category={editingCategory} />
     </div>
   );
 };

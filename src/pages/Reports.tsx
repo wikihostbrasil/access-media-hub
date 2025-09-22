@@ -4,31 +4,70 @@ import { Badge } from "@/components/ui/badge";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { Download, FileText, Users, TrendingUp, Calendar, Filter } from "lucide-react";
 
+import { useEffect, useMemo, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+
 const Reports = () => {
-  // Mock data para os gráficos
-  const downloadsByDay = [
-    { day: 'Seg', downloads: 24 },
-    { day: 'Ter', downloads: 18 },
-    { day: 'Qua', downloads: 35 },
-    { day: 'Qui', downloads: 28 },
-    { day: 'Sex', downloads: 42 },
-    { day: 'Sáb', downloads: 15 },
-    { day: 'Dom', downloads: 8 },
-  ];
+  const [downloads, setDownloads] = useState<{ downloaded_at: string; file_id: string }[]>([]);
+  const [files, setFiles] = useState<{ id: string; title: string }[]>([]);
 
-  const downloadsByCategory = [
-    { name: 'Documentos', value: 45, color: '#8884d8' },
-    { name: 'Imagens', value: 30, color: '#82ca9d' },
-    { name: 'Vídeos', value: 15, color: '#ffc658' },
-    { name: 'Software', value: 10, color: '#ff7300' },
-  ];
+  useEffect(() => {
+    const fetchData = async () => {
+      const { data: dls } = await supabase.from("downloads").select("downloaded_at, file_id");
+      const { data: fls } = await supabase.from("files").select("id, title");
+      setDownloads(dls || []);
+      setFiles(fls || []);
+    };
+    fetchData();
+  }, []);
 
-  const topFiles = [
-    { name: 'manual-usuario.pdf', downloads: 125, category: 'Documentos' },
-    { name: 'logo-empresa.png', downloads: 98, category: 'Imagens' },
-    { name: 'video-tutorial.mp4', downloads: 76, category: 'Vídeos' },
-    { name: 'software-v2.exe', downloads: 54, category: 'Software' },
-  ];
+  const downloadsByDay = useMemo(() => {
+    const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+    const counts: Record<string, number> = {};
+    downloads.forEach(d => {
+      const day = days[new Date(d.downloaded_at).getDay()];
+      counts[day] = (counts[day] || 0) + 1;
+    });
+    return days.map(day => ({ day, downloads: counts[day] || 0 }));
+  }, [downloads]);
+
+  const topFiles = useMemo(() => {
+    const counts: Record<string, number> = {};
+    downloads.forEach(d => { counts[d.file_id] = (counts[d.file_id] || 0) + 1; });
+    const withNames = Object.entries(counts).map(([fileId, count]) => ({
+      name: files.find(f => f.id === fileId)?.title || 'Arquivo',
+      downloads: count,
+      category: 'N/A',
+    }));
+    return withNames.sort((a, b) => b.downloads - a.downloads).slice(0, 4);
+  }, [downloads, files]);
+
+  const downloadsByCategory = useMemo(() => {
+    const categories: Record<string, string[]> = {
+      Documentos: ['pdf','doc','docx','xls','xlsx','ppt','pptx','txt'],
+      Imagens: ['png','jpg','jpeg','gif','webp'],
+      Vídeos: ['mp4','mov','avi','mkv','webm'],
+      Áudio: ['mp3','wav','ogg','aac','m4a','flac'],
+      Outros: [],
+    };
+    const counts: Record<string, number> = { Documentos: 0, Imagens: 0, Vídeos: 0, Áudio: 0, Outros: 0 };
+    const getExt = (name: string) => name.split('.').pop()?.toLowerCase() || '';
+    downloads.forEach(d => {
+      const name = files.find(f => f.id === d.file_id)?.title || '';
+      const ext = getExt(name);
+      const match = Object.entries(categories).find(([_, exts]) => exts.includes(ext));
+      const key = match ? match[0] : 'Outros';
+      counts[key] = (counts[key] || 0) + 1;
+    });
+    const palette: Record<string, string> = {
+      Documentos: '#8884d8',
+      Imagens: '#82ca9d',
+      Vídeos: '#ffc658',
+      Áudio: '#00bcd4',
+      Outros: '#999999',
+    };
+    return Object.entries(counts).map(([name, value]) => ({ name, value, color: palette[name] }));
+  }, [downloads, files]);
 
   return (
     <div className="space-y-6">

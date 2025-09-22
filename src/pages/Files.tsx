@@ -1,4 +1,4 @@
-import { useState, Fragment } from "react";
+import { useState, useEffect, Fragment } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,17 +12,42 @@ import { ptBR } from "date-fns/locale";
 import { UploadFileDialog } from "@/components/dialogs/UploadFileDialog";
 import { CreateCategoryDialog } from "@/components/dialogs/CreateCategoryDialog";
 import { AudioPlayer } from "@/components/AudioPlayer";
+import { EditFileDialog } from "@/components/dialogs/EditFileDialog";
 import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/useAuth";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const Files = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedFileId, setSelectedFileId] = useState<string | null>(null);
   const [selectedFileName, setSelectedFileName] = useState("");
+  const [openEdit, setOpenEdit] = useState(false);
+  const [editingFile, setEditingFile] = useState<{ id: string; title: string; description?: string | null } | null>(null);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { user } = useAuth();
 
   const [openUpload, setOpenUpload] = useState(false);
   const [openCategory, setOpenCategory] = useState(false);
   const { data: files, isLoading } = useFiles();
+  const { data: profile } = useQuery({
+    queryKey: ["profile-role", user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data } = await supabase.from("profiles").select("role").eq("user_id", user.id).single();
+      return data as { role: "admin" | "operator" | "user" } | null;
+    },
+    enabled: !!user,
+  });
   const deleteFile = useDeleteFile();
+
+  // Read search from query param (q)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const q = params.get("q");
+    if (q) setSearchTerm(q);
+  }, [location.search]);
 
   const filteredFiles = files?.filter(file =>
     file.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -37,6 +62,22 @@ const Files = () => {
   };
 
   const getFileExtension = (filename: string) => {
+    const ext = filename.split('.').pop()?.toUpperCase();
+    return ext || 'FILE';
+  };
+
+  // Admin-only: download counts per file
+  const { data: downloadCounts } = useQuery({
+    queryKey: ["download-counts"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("downloads").select("file_id");
+      if (error) throw error;
+      const map: Record<string, number> = {};
+      data.forEach((d: any) => { map[d.file_id] = (map[d.file_id] || 0) + 1; });
+      return map;
+    },
+    enabled: profile?.role === 'admin',
+  });
     const ext = filename.split('.').pop()?.toUpperCase();
     return ext || 'FILE';
   };
@@ -127,8 +168,10 @@ const Files = () => {
                 <TableHead>Arquivo</TableHead>
                 <TableHead>Tipo</TableHead>
                 <TableHead>Tamanho</TableHead>
-                <TableHead>Downloads</TableHead>
-                <TableHead>Enviado por</TableHead>
+                {profile?.role === 'admin' && <TableHead>Downloads</TableHead>}
+                    <TableHead>Enviado por</TableHead>
+                    <TableHead>Data Upload</TableHead>
+                    <TableHead>Ações</TableHead>
                 <TableHead>Data Upload</TableHead>
                 <TableHead>Ações</TableHead>
               </TableRow>
@@ -154,26 +197,30 @@ const Files = () => {
                       </Badge>
                     </TableCell>
                     <TableCell>{formatFileSize(file.file_size)}</TableCell>
-                    <TableCell>
-                      <span className="font-medium">0</span>
-                    </TableCell>
+                    {profile?.role === 'admin' && (
+                      <TableCell>
+                        <span className="font-medium">{downloadCounts?.[file.id] || 0}</span>
+                      </TableCell>
+                    )}
                     <TableCell>Usuário</TableCell>
                     <TableCell>
                       {format(new Date(file.created_at), "dd/MM/yyyy", { locale: ptBR })}
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleShowDownloads(file.id, file.title)}
-                        >
-                          <BarChart3 className="h-3 w-3" />
-                        </Button>
+                        {profile?.role === 'admin' && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleShowDownloads(file.id, file.title)}
+                          >
+                            <BarChart3 className="h-3 w-3" />
+                          </Button>
+                        )}
                         <Button size="sm" variant="outline" onClick={() => handleDirectDownload(file)}>
                           <Download className="h-3 w-3" />
                         </Button>
-                        <Button size="sm" variant="outline">
+                        <Button size="sm" variant="outline" onClick={() => { setEditingFile({ id: file.id, title: file.title, description: file.description }); setOpenEdit(true); }}>
                           <Edit className="h-3 w-3" />
                         </Button>
                         <Button
@@ -223,6 +270,7 @@ const Files = () => {
 
       <UploadFileDialog open={openUpload} onOpenChange={setOpenUpload} />
       <CreateCategoryDialog open={openCategory} onOpenChange={setOpenCategory} />
+      <EditFileDialog open={openEdit} onOpenChange={setOpenEdit} file={editingFile} />
     </div>
   );
 };

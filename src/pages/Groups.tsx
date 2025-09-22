@@ -10,12 +10,14 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CreateGroupDialog } from "@/components/dialogs/CreateGroupDialog";
 import { ManageGroupMembersDialog } from "@/components/dialogs/ManageGroupMembersDialog";
+import { EditGroupDialog } from "@/components/dialogs/EditGroupDialog";
 
 const Groups = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [openCreate, setOpenCreate] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<any>(null);
   const [openMembers, setOpenMembers] = useState(false);
+  const [openEdit, setOpenEdit] = useState(false);
   const { data: groups, isLoading } = useGroups();
   const deleteGroup = useDeleteGroup();
 
@@ -137,7 +139,7 @@ const Groups = () => {
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-2">
-                      <Button size="sm" variant="outline">
+                      <Button size="sm" variant="outline" onClick={() => { setSelectedGroup(group); setOpenEdit(true); }}>
                         Editar
                       </Button>
                       <Button 
@@ -180,6 +182,8 @@ const Groups = () => {
         onOpenChange={setOpenMembers}
         group={selectedGroup}
       />
+      <EditGroupDialog open={openEdit} onOpenChange={setOpenEdit} group={selectedGroup} />
+      
     </div>
   );
 };

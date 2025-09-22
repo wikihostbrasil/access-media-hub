@@ -5,6 +5,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { AppSidebar } from "@/components/AppSidebar";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from "@/hooks/useAuth";
@@ -36,6 +38,15 @@ const queryClient = new QueryClient({
 
 function AuthenticatedApp() {
   const { user, loading, signOut } = useAuth();
+  const { data: profile } = useQuery({
+    queryKey: ['profile-role', user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data } = await supabase.from('profiles').select('role').eq('user_id', user.id).single();
+      return data as { role: 'admin' | 'operator' | 'user' } | null;
+    },
+    enabled: !!user,
+  });
 
   if (loading) {
     return (
@@ -82,12 +93,12 @@ function AuthenticatedApp() {
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/files" element={<Files />} />
-              <Route path="/users" element={<Users />} />
-              <Route path="/groups" element={<Groups />} />
-              <Route path="/categories" element={<Categories />} />
-              <Route path="/downloads" element={<Downloads />} />
-              <Route path="/reports" element={<Reports />} />
-              <Route path="/settings" element={<Settings />} />
+              {profile?.role !== 'user' && <Route path="/users" element={<Users />} />}
+              {profile?.role !== 'user' && <Route path="/groups" element={<Groups />} />}
+              {profile?.role !== 'user' && <Route path="/categories" element={<Categories />} />}
+              {profile?.role === 'admin' && <Route path="/downloads" element={<Downloads />} />}
+              {profile?.role === 'admin' && <Route path="/reports" element={<Reports />} />}
+              {profile?.role !== 'user' && <Route path="/settings" element={<Settings />} />}
               <Route path="/profile" element={<Profile />} />
               <Route path="*" element={<NotFound />} />
             </Routes>

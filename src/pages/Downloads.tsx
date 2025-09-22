@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Download, Search, Calendar, TrendingUp, FileText } from "lucide-react";
 import { useDownloads, useDownloadStats } from "@/hooks/useDownloads";
+import { DownloadDetailsModal } from "@/components/DownloadDetailsModal";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -13,6 +14,9 @@ const Downloads = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const { data: downloads, isLoading } = useDownloads();
   const { data: stats } = useDownloadStats();
+  const [openDetails, setOpenDetails] = useState(false);
+  const [detailsFileId, setDetailsFileId] = useState<string>("");
+  const [detailsFileName, setDetailsFileName] = useState<string>("");
 
   const filteredDownloads = downloads?.filter(download =>
     download.files.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -167,11 +171,11 @@ const Downloads = () => {
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell>
-                    <Button size="sm" variant="outline">
-                      Detalhes
-                    </Button>
-                  </TableCell>
+                    <TableCell>
+                      <Button size="sm" variant="outline" onClick={() => { setDetailsFileId(download.file_id); setDetailsFileName(download.files.title); setOpenDetails(true); }}>
+                        Detalhes
+                      </Button>
+                    </TableCell>
                 </TableRow>
               ))}
               {filteredDownloads.length === 0 && (
@@ -185,6 +189,7 @@ const Downloads = () => {
           </Table>
         </CardContent>
       </Card>
+      <DownloadDetailsModal isOpen={openDetails} onClose={() => setOpenDetails(false)} fileId={detailsFileId} fileName={detailsFileName} />
     </div>
   );
 };
