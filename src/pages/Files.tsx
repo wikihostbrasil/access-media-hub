@@ -78,9 +78,6 @@ const Files = () => {
     },
     enabled: profile?.role === 'admin',
   });
-    const ext = filename.split('.').pop()?.toUpperCase();
-    return ext || 'FILE';
-  };
 
   const isAudioFile = (filename: string, mimeType?: string) => {
     const audioExtensions = ['MP3', 'WAV', 'OGG', 'AAC', 'M4A', 'FLAC'];
@@ -115,6 +112,7 @@ const Files = () => {
       // noop
     }
   };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -169,9 +167,7 @@ const Files = () => {
                 <TableHead>Tipo</TableHead>
                 <TableHead>Tamanho</TableHead>
                 {profile?.role === 'admin' && <TableHead>Downloads</TableHead>}
-                    <TableHead>Enviado por</TableHead>
-                    <TableHead>Data Upload</TableHead>
-                    <TableHead>Ações</TableHead>
+                <TableHead>Enviado por</TableHead>
                 <TableHead>Data Upload</TableHead>
                 <TableHead>Ações</TableHead>
               </TableRow>

@@ -56,9 +56,9 @@ const Settings = () => {
             Gerencie as configurações globais da aplicação
           </p>
         </div>
-        <Button onClick={handleSave} disabled={saving}>
+        <Button onClick={handleSave} disabled={saveSettings.isPending}>
           <Save className="h-4 w-4 mr-2" />
-          {saving ? "Salvando..." : "Salvar Alterações"}
+          {saveSettings.isPending ? "Salvando..." : "Salvar Alterações"}
         </Button>
       </div>
 
