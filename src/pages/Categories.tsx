@@ -3,52 +3,40 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { FolderOpen, Search, Plus, FileText } from "lucide-react";
+import { FolderOpen, Search, Plus, FileText, Trash2 } from "lucide-react";
+import { useCategories, useDeleteCategory } from "@/hooks/useCategories";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { CreateCategoryDialog } from "@/components/dialogs/CreateCategoryDialog";
 
 const Categories = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [openCreate, setOpenCreate] = useState(false);
+  const { data: categories, isLoading } = useCategories();
+  const deleteCategory = useDeleteCategory();
 
-  // Mock data - em uma implementação real viria do Supabase
-  const categories = [
-    {
-      id: 1,
-      name: "Documentos",
-      description: "Arquivos PDF, DOC, TXT e similares",
-      fileCount: 25,
-      color: "blue",
-      createdAt: "2024-01-10",
-    },
-    {
-      id: 2,
-      name: "Imagens",
-      description: "Arquivos JPG, PNG, GIF e similares",
-      fileCount: 18,
-      color: "green",
-      createdAt: "2024-01-12",
-    },
-    {
-      id: 3,
-      name: "Vídeos",
-      description: "Arquivos MP4, AVI, MOV e similares",
-      fileCount: 8,
-      color: "purple",
-      createdAt: "2024-01-15",
-    },
-    {
-      id: 4,
-      name: "Software",
-      description: "Executáveis e instaladores",
-      fileCount: 12,
-      color: "orange",
-      createdAt: "2024-01-18",
-    },
-  ];
-
-  const filteredCategories = categories.filter(category =>
+  const filteredCategories = categories?.filter(category =>
     category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    category.description.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+    category.description?.toLowerCase().includes(searchTerm.toLowerCase())
+  ) || [];
+
+  const handleDeleteCategory = async (categoryId: string, categoryName: string) => {
+    if (window.confirm(`Tem certeza que deseja excluir a categoria "${categoryName}"?`)) {
+      deleteCategory.mutate(categoryId);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-lg">Carregando categorias...</div>
+      </div>
+    );
+  }
+
+  const totalFiles = categories?.reduce((acc, cat) => acc + (cat.file_count || 0), 0) || 0;
+  const avgFilesPerCategory = categories?.length ? Math.round(totalFiles / categories.length) : 0;
+  const mostPopularCategory = categories?.sort((a, b) => (b.file_count || 0) - (a.file_count || 0))[0];
 
   return (
     <div className="space-y-6">
@@ -59,7 +47,7 @@ const Categories = () => {
             Organize arquivos em categorias para facilitar a navegação
           </p>
         </div>
-        <Button>
+        <Button onClick={() => setOpenCreate(true)}>
           <Plus className="h-4 w-4 mr-2" />
           Nova Categoria
         </Button>
@@ -72,7 +60,7 @@ const Categories = () => {
             <FolderOpen className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{categories.length}</div>
+            <div className="text-2xl font-bold">{categories?.length || 0}</div>
           </CardContent>
         </Card>
         
@@ -82,9 +70,7 @@ const Categories = () => {
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {categories.reduce((acc, cat) => acc + cat.fileCount, 0)}
-            </div>
+            <div className="text-2xl font-bold">{totalFiles}</div>
           </CardContent>
         </Card>
         
@@ -95,7 +81,7 @@ const Categories = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {categories.sort((a, b) => b.fileCount - a.fileCount)[0]?.name}
+              {mostPopularCategory?.name || "N/A"}
             </div>
           </CardContent>
         </Card>
@@ -106,9 +92,7 @@ const Categories = () => {
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {Math.round(categories.reduce((acc, cat) => acc + cat.fileCount, 0) / categories.length)}
-            </div>
+            <div className="text-2xl font-bold">{avgFilesPerCategory}</div>
           </CardContent>
         </Card>
       </div>
@@ -139,16 +123,19 @@ const Categories = () => {
                     <CardTitle className="text-lg">{category.name}</CardTitle>
                     <FolderOpen className="h-5 w-5 text-muted-foreground" />
                   </div>
-                  <CardDescription>{category.description}</CardDescription>
+                  <CardDescription>{category.description || "Sem descrição"}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center justify-between mb-3">
                     <Badge variant="secondary">
-                      {category.fileCount} arquivos
+                      {category.file_count || 0} arquivos
                     </Badge>
-                    <span className="text-sm text-muted-foreground">
-                      Criado em {category.createdAt}
-                    </span>
+                    <div className="text-sm text-muted-foreground">
+                      {category.profiles?.full_name || "Usuário"}
+                    </div>
+                  </div>
+                  <div className="text-sm text-muted-foreground mb-3">
+                    Criado em {format(new Date(category.created_at), "dd/MM/yyyy", { locale: ptBR })}
                   </div>
                   <div className="flex gap-2">
                     <Button size="sm" variant="outline" className="flex-1">
@@ -157,13 +144,28 @@ const Categories = () => {
                     <Button size="sm" variant="outline" className="flex-1">
                       Ver Arquivos
                     </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => handleDeleteCategory(category.id, category.name)}
+                      disabled={deleteCategory.isPending}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
             ))}
+            {filteredCategories.length === 0 && (
+              <div className="text-center py-8 text-muted-foreground col-span-full">
+                Nenhuma categoria encontrada
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
+
+      <CreateCategoryDialog open={openCreate} onOpenChange={setOpenCreate} />
     </div>
   );
 };

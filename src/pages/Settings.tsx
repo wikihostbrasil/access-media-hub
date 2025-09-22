@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,8 +8,19 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Settings as SettingsIcon, Save, Shield, Bell, Database, Mail } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const Settings = () => {
+  const { toast } = useToast();
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    setSaving(true);
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    toast({ title: "Configurações salvas", description: "Todas as alterações foram aplicadas com sucesso" });
+    setSaving(false);
+  };
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -18,9 +30,9 @@ const Settings = () => {
             Gerencie as configurações globais da aplicação
           </p>
         </div>
-        <Button>
+        <Button onClick={handleSave} disabled={saving}>
           <Save className="h-4 w-4 mr-2" />
-          Salvar Alterações
+          {saving ? "Salvando..." : "Salvar Alterações"}
         </Button>
       </div>
 

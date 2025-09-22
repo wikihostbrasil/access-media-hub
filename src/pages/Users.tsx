@@ -190,6 +190,8 @@ const Users = () => {
           </Table>
         </CardContent>
       </Card>
+
+      <InviteUserDialog open={openInvite} onOpenChange={setOpenInvite} />
     </div>
   );
 };

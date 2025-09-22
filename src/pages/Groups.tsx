@@ -8,9 +8,11 @@ import { Users, Search, Plus, FolderOpen, Trash2 } from "lucide-react";
 import { useGroups, useDeleteGroup } from "@/hooks/useGroups";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { CreateGroupDialog } from "@/components/dialogs/CreateGroupDialog";
 
 const Groups = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [openCreate, setOpenCreate] = useState(false);
   const { data: groups, isLoading } = useGroups();
   const deleteGroup = useDeleteGroup();
 
@@ -45,7 +47,7 @@ const Groups = () => {
             Organize usuários em grupos e gerencie permissões
           </p>
         </div>
-        <Button>
+        <Button onClick={() => setOpenCreate(true)}>
           <Plus className="h-4 w-4 mr-2" />
           Criar Grupo
         </Button>
@@ -161,6 +163,8 @@ const Groups = () => {
           </Table>
         </CardContent>
       </Card>
+
+      <CreateGroupDialog open={openCreate} onOpenChange={setOpenCreate} />
     </div>
   );
 };

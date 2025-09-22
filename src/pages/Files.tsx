@@ -10,6 +10,7 @@ import { DownloadDetailsModal } from "@/components/DownloadDetailsModal";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { UploadFileDialog } from "@/components/dialogs/UploadFileDialog";
+import { CreateCategoryDialog } from "@/components/dialogs/CreateCategoryDialog";
 import { supabase } from "@/integrations/supabase/client";
 
 const Files = () => {
@@ -18,6 +19,7 @@ const Files = () => {
   const [selectedFileName, setSelectedFileName] = useState("");
 
   const [openUpload, setOpenUpload] = useState(false);
+  const [openCategory, setOpenCategory] = useState(false);
   const { data: files, isLoading } = useFiles();
   const deleteFile = useDeleteFile();
 
@@ -87,7 +89,7 @@ const Files = () => {
             <Upload className="h-4 w-4 mr-2" />
             Upload Arquivo
           </Button>
-          <Button variant="outline">
+          <Button variant="outline" onClick={() => setOpenCategory(true)}>
             <Plus className="h-4 w-4 mr-2" />
             Nova Categoria
           </Button>
@@ -205,6 +207,7 @@ const Files = () => {
       />
 
       <UploadFileDialog open={openUpload} onOpenChange={setOpenUpload} />
+      <CreateCategoryDialog open={openCategory} onOpenChange={setOpenCategory} />
     </div>
   );
 };
