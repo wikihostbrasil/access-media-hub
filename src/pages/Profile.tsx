@@ -41,10 +41,10 @@ export default function Profile() {
         .from("profiles")
         .select("*")
         .eq("user_id", user.id)
-        .single();
+        .maybeSingle();
       
       if (error) throw error;
-      return data as UserProfile;
+      return data as UserProfile | null;
     },
     enabled: !!user,
   });

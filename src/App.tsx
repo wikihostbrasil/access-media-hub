@@ -62,6 +62,8 @@ function AuthenticatedApp() {
       <>
         <Routes>
           <Route path="/auth" element={<Auth />} />
+          <Route path="/auth/reset-password" element={<Auth />} />
+          <Route path="/auth/confirm" element={<Auth />} />
           <Route path="/signup-success" element={<SignupSuccess />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="*" element={<Navigate to="/auth" replace />} />

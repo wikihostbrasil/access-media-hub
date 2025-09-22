@@ -42,14 +42,21 @@ export const useFiles = () => {
       // Filter files based on visibility rules
       const now = new Date();
       const visibleFiles = data.filter(file => {
+        // Only show active files
+        if (file.status && file.status !== 'active') return false;
+
         // If permanent, always show
         if (file.is_permanent) return true;
         
-        // If not permanent, check if within validity period
-        if (file.start_date && new Date(file.start_date) > now) return false;
-        if (file.end_date && new Date(file.end_date) < now) return false;
-        
-        return true;
+        // If not permanent, check validity window (inclusive of end date)
+        const startsOk = !file.start_date || new Date(file.start_date) <= now;
+        let endsOk = true;
+        if (file.end_date) {
+          const end = new Date(file.end_date);
+          end.setHours(23, 59, 59, 999); // inclusive through the end of the day
+          endsOk = now <= end;
+        }
+        return startsOk && endsOk;
       });
       
       return visibleFiles as FileData[];

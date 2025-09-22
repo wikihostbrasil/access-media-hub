@@ -130,16 +130,18 @@ const Files = () => {
             Gerencie e organize todos os arquivos disponíveis para download
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button onClick={() => setOpenUpload(true)}>
-            <Upload className="h-4 w-4 mr-2" />
-            Upload Arquivo
-          </Button>
-          <Button variant="outline" onClick={() => setOpenCategory(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Nova Categoria
-          </Button>
-        </div>
+        {profile?.role !== 'user' && (
+          <div className="flex gap-2">
+            <Button onClick={() => setOpenUpload(true)}>
+              <Upload className="h-4 w-4 mr-2" />
+              Upload Arquivo
+            </Button>
+            <Button variant="outline" onClick={() => setOpenCategory(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Nova Categoria
+            </Button>
+          </div>
+        )}
       </div>
 
       <Card>
