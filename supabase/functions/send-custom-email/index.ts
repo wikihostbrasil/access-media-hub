@@ -139,7 +139,7 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     const emailResponse = await resend.emails.send({
-      from: "Sistema de Arquivos <noreply@yourdomain.com>",
+      from: "Sistema de Arquivos <sistema@yourdomain.com>",
       to: [to],
       subject: subject,
       html: html,
