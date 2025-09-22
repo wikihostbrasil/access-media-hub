@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { useCategories } from "@/hooks/useCategories";
+import { useCategories } from "@/hooks/useApiCategories";
 import { Search, Tag } from "lucide-react";
 
 interface CategorySearchSelectProps {

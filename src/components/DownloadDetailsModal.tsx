@@ -4,7 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Download, User, Calendar, TrendingUp } from "lucide-react";
-import { useFileDownloads } from "@/hooks/useFiles";
+// Note: File downloads feature needs PHP implementation
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -16,7 +16,9 @@ interface DownloadDetailsModalProps {
 }
 
 export const DownloadDetailsModal = ({ isOpen, onClose, fileId, fileName }: DownloadDetailsModalProps) => {
-  const { data: downloads, isLoading } = useFileDownloads(fileId);
+  // const { data: downloads, isLoading } = useFileDownloads(fileId);
+  const downloads: any[] = [];
+  const isLoading = false;
 
   const downloadCount = downloads?.length || 0;
   const uniqueUsers = new Set(downloads?.map(d => d.user_id)).size;

@@ -19,38 +19,15 @@ export const AudioPlayer = ({ fileUrl, fileName, fileId }: AudioPlayerProps) => 
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
 
-  // Get signed URL for the audio file
+  // Use file URL directly (assuming it's accessible)
   useEffect(() => {
-    const getAudioUrl = async () => {
-      try {
-        setIsLoading(true);
-        const { data } = await supabase.storage
-          .from("files")
-          .createSignedUrl(fileUrl, 3600); // 1 hour expiry
-        
-        if (data?.signedUrl) {
-          setAudioUrl(data.signedUrl);
-        }
-      } catch (error) {
-        console.error("Error getting audio URL:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    getAudioUrl();
+    setAudioUrl(fileUrl);
   }, [fileUrl]);
 
   // Track play when audio is played (not download)
   const trackPlay = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        await supabase.from("plays").insert({
-          file_id: fileId,
-          user_id: user.id,
-        });
-      }
+      await apiClient.recordPlay(fileId);
     } catch (error) {
       console.error("Error tracking play:", error);
     }
@@ -117,13 +94,7 @@ export const AudioPlayer = ({ fileUrl, fileName, fileId }: AudioPlayerProps) => 
       URL.revokeObjectURL(url);
       
       // Track download (not play)
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        await supabase.from("downloads").insert({
-          file_id: fileId,
-          user_id: user.id,
-        });
-      }
+      await apiClient.recordDownload(fileId);
     } catch (error) {
       console.error("Error downloading file:", error);
     }

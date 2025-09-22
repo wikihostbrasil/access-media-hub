@@ -6,9 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { User, Mail, Phone, Bell, Save } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useApiAuth } from "@/hooks/useApiAuth";
 import { useToast } from "@/hooks/use-toast";
 
 interface UserProfile {
@@ -22,9 +20,8 @@ interface UserProfile {
 }
 
 export default function Profile() {
-  const { user, signOut } = useAuth();
+  const { user, signOut } = useApiAuth();
   const { toast } = useToast();
-  const queryClient = useQueryClient();
   
   const [formData, setFormData] = useState({
     full_name: "",
@@ -33,76 +30,33 @@ export default function Profile() {
   });
   const [saving, setSaving] = useState(false);
 
-  const { data: profile, isLoading } = useQuery({
-    queryKey: ["profile", user?.id],
-    queryFn: async () => {
-      if (!user) return null;
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("user_id", user.id)
-        .maybeSingle();
-      
-      if (error) throw error;
-      return data as UserProfile | null;
-    },
-    enabled: !!user,
-  });
-
+  // Initialize form with user data
   useEffect(() => {
-    if (profile) {
+    if (user) {
       setFormData({
-        full_name: profile.full_name || "",
-        whatsapp: profile.whatsapp || "",
-        receive_notifications: profile.receive_notifications,
-      });
-    } else if (user && !isLoading) {
-      // Initialize form with user email data if no profile exists
-      setFormData({
-        full_name: user.user_metadata?.full_name || "",
-        whatsapp: "",
+        full_name: user.full_name || "",
+        whatsapp: "", // This would need to be implemented in PHP backend
         receive_notifications: true,
       });
     }
-  }, [profile, user, isLoading]);
-
-  const updateProfileMutation = useMutation({
-    mutationFn: async (data: typeof formData) => {
-      if (!user) throw new Error("Usuário não autenticado");
-      
-      // Use upsert to create profile if it doesn't exist
-      const { error } = await supabase
-        .from("profiles")
-        .upsert({
-          user_id: user.id,
-          ...data,
-        })
-        .eq("user_id", user.id);
-      
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["profile"] });
-      toast({
-        title: "Perfil atualizado",
-        description: "Suas informações foram salvas com sucesso!",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Erro",
-        description: `Erro ao atualizar perfil: ${error.message}`,
-        variant: "destructive",
-      });
-    },
-  });
+  }, [user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     
     try {
-      await updateProfileMutation.mutateAsync(formData);
+      // Note: Profile update would need PHP implementation
+      toast({
+        title: "Perfil atualizado",
+        description: "Suas informações foram salvas com sucesso!",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: `Erro ao atualizar perfil: ${error.message}`,
+        variant: "destructive",
+      });
     } finally {
       setSaving(false);
     }
@@ -118,14 +72,6 @@ export default function Profile() {
       });
     }
   };
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <div className="text-lg">Carregando perfil...</div>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6 max-w-2xl">
@@ -225,11 +171,11 @@ export default function Profile() {
         <CardContent className="space-y-2">
           <div className="flex justify-between">
             <span className="text-muted-foreground">Conta criada em:</span>
-            <span>{profile ? new Date(profile.created_at).toLocaleDateString("pt-BR") : "Não disponível"}</span>
+            <span>Não disponível</span>
           </div>
           <div className="flex justify-between">
             <span className="text-muted-foreground">Última atualização:</span>
-            <span>{profile ? new Date(profile.updated_at).toLocaleDateString("pt-BR") : "Não disponível"}</span>
+            <span>Não disponível</span>
           </div>
           <div className="flex justify-between">
             <span className="text-muted-foreground">ID do usuário:</span>

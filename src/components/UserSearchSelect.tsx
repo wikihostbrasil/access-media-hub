@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { useUsers } from "@/hooks/useUsers";
+import { useUsers } from "@/hooks/useApiUsers";
 import { Search, Users } from "lucide-react";
 
 interface UserSearchSelectProps {

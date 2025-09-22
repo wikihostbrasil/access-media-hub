@@ -1,9 +1,7 @@
 import { useState } from "react";
 import { Files, Users, FolderOpen, Settings, Download, BarChart3 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useApiAuth } from "@/hooks/useApiAuth";
 
 import {
   Sidebar,
@@ -28,25 +26,14 @@ export function AppSidebar() {
   const currentPath = location.pathname;
   const { user } = useApiAuth();
 
-  const { data: profile } = useQuery({
-    queryKey: ['profile', user?.id],
-    queryFn: async () => {
-      if (!user) return null;
-      const { data } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('user_id', user.id)
-        .single();
-      return data as Profile;
-    },
-    enabled: !!user,
-  });
+  // Use role from user object directly
+  const userRole = user?.role || 'user';
 
   const isActive = (path: string) => currentPath === path;
   const getNavCls = ({ isActive }: { isActive: boolean }) =>
     isActive ? "bg-primary text-primary-foreground" : "hover:bg-accent hover:text-accent-foreground";
 
-  const userRole = profile?.role || 'user';
+  
 
   const menuItems = [
     { title: "Arquivos", url: "/files", icon: Files, roles: ['admin', 'operator', 'user'] },
