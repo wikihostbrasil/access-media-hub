@@ -1,85 +1,33 @@
-import { useAuth } from "@/hooks/useAuth";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useApiAuth } from "@/hooks/useApiAuth";
+import { useStats } from "@/hooks/useApiStats";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Files, Users, FolderOpen, Download } from "lucide-react";
 
 const Index = () => {
-  const { user } = useAuth();
-
-  const { data: profile } = useQuery({
-    queryKey: ['profile', user?.id],
-    queryFn: async () => {
-      if (!user) return null;
-      const { data } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-      return data;
-    },
-    enabled: !!user,
-  });
-
-  const { data: stats } = useQuery({
-    queryKey: ['dashboard-stats', user?.id, profile?.role],
-    queryFn: async () => {
-      if (!user || !profile) return null;
-      
-      if (profile.role === 'user') {
-        // For regular users, show only files they have access to and their downloads
-        const [myFilesResult, myDownloadsResult] = await Promise.all([
-          supabase.from('files').select('id', { count: 'exact' }),
-          supabase.from('downloads').select('id', { count: 'exact' }).eq('user_id', user.id)
-        ]);
-
-        return {
-          files: myFilesResult.count || 0,
-          downloads: myDownloadsResult.count || 0,
-          users: null,
-          groups: null,
-        };
-      } else {
-        // For admins and operators, show all stats
-        const [filesResult, usersResult, groupsResult, downloadsResult] = await Promise.all([
-          supabase.from('files').select('id', { count: 'exact' }),
-          supabase.from('profiles').select('id', { count: 'exact' }),
-          supabase.from('groups').select('id', { count: 'exact' }),
-          supabase.from('downloads').select('id', { count: 'exact' })
-        ]);
-
-        return {
-          files: filesResult.count || 0,
-          users: usersResult.count || 0,
-          groups: groupsResult.count || 0,
-          downloads: downloadsResult.count || 0,
-        };
-      }
-    },
-    enabled: !!user && !!profile,
-  });
+  const { user } = useApiAuth();
+  const { data: stats } = useStats();
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold">Dashboard</h1>
         <p className="text-muted-foreground">
-          Bem-vindo, {profile?.full_name}! Perfil: {profile?.role}
+          Bem-vindo, {user?.full_name}! Perfil: {user?.role}
         </p>
       </div>
 
-      <div className={`grid grid-cols-1 md:grid-cols-2 ${profile?.role === 'user' ? 'lg:grid-cols-2' : 'lg:grid-cols-4'} gap-6`}>
+      <div className={`grid grid-cols-1 md:grid-cols-2 ${user?.role === 'user' ? 'lg:grid-cols-2' : 'lg:grid-cols-4'} gap-6`}>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              {profile?.role === 'user' ? 'Meus Arquivos' : 'Total de Arquivos'}
+              {user?.role === 'user' ? 'Meus Arquivos' : 'Total de Arquivos'}
             </CardTitle>
             <Files className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats?.files || 0}</div>
+            <div className="text-2xl font-bold">{stats?.total_files || 0}</div>
             <p className="text-xs text-muted-foreground">
-              {profile?.role === 'user' ? 'Arquivos disponíveis para você' : 'Arquivos no sistema'}
+              {user?.role === 'user' ? 'Arquivos disponíveis para você' : 'Arquivos no sistema'}
             </p>
           </CardContent>
         </Card>
@@ -87,19 +35,19 @@ const Index = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              {profile?.role === 'user' ? 'Meus Downloads' : 'Downloads'}
+              {user?.role === 'user' ? 'Meus Downloads' : 'Downloads'}
             </CardTitle>
             <Download className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats?.downloads || 0}</div>
+            <div className="text-2xl font-bold">{stats?.total_downloads || 0}</div>
             <p className="text-xs text-muted-foreground">
-              {profile?.role === 'user' ? 'Downloads que você fez' : 'Downloads realizados'}
+              {user?.role === 'user' ? 'Downloads que você fez' : 'Downloads realizados'}
             </p>
           </CardContent>
         </Card>
 
-        {profile?.role !== 'user' && (
+        {user?.role !== 'user' && (
           <>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -107,7 +55,7 @@ const Index = () => {
                 <Users className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stats?.users || 0}</div>
+                <div className="text-2xl font-bold">{stats?.active_users || 0}</div>
                 <p className="text-xs text-muted-foreground">
                   Usuários cadastrados
                 </p>
@@ -120,7 +68,7 @@ const Index = () => {
                 <FolderOpen className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stats?.groups || 0}</div>
+                <div className="text-2xl font-bold">0</div>
                 <p className="text-xs text-muted-foreground">
                   Grupos criados
                 </p>
@@ -143,7 +91,7 @@ const Index = () => {
               Este sistema permite o controle completo de downloads com diferentes perfis de acesso:
             </p>
             <ul className="list-disc list-inside space-y-2 text-sm text-muted-foreground">
-              {profile?.role === 'user' ? (
+              {user?.role === 'user' ? (
                 <>
                   <li>Acesse arquivos autorizados para você</li>
                   <li>Faça download de documentos e mídias</li>

@@ -24,7 +24,7 @@ import Reports from "@/pages/Reports";
 import Settings from "@/pages/Settings";
 import Profile from "@/pages/Profile";
 import SignupSuccess from "@/pages/SignupSuccess";
-import ForgotPassword from "@/pages/ForgotPassword";
+
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -55,7 +55,7 @@ function AuthenticatedApp() {
           <Route path="/auth/reset-password" element={<Auth />} />
           <Route path="/auth/confirm" element={<Auth />} />
           <Route path="/signup-success" element={<SignupSuccess />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
+          
           <Route path="*" element={<Navigate to="/auth" replace />} />
         </Routes>
       </>

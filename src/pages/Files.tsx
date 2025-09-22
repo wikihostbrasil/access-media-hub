@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { FileIcon, Download, Search, Plus, Upload, BarChart3, Edit, Trash2 } from "lucide-react";
-import { useFiles } from "@/hooks/useApiFiles";
+import { useFiles, useDeleteFile } from "@/hooks/useApiFiles";
 import { DownloadDetailsModal } from "@/components/DownloadDetailsModal";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -13,9 +13,8 @@ import { UploadFileDialog } from "@/components/dialogs/UploadFileDialog";
 import { CreateCategoryDialog } from "@/components/dialogs/CreateCategoryDialog";
 import { AudioPlayer } from "@/components/AudioPlayer";
 import { EditFileDialog } from "@/components/dialogs/EditFileDialog";
-import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
-import { useAuth } from "@/hooks/useAuth";
+import { useApiAuth } from "@/hooks/useApiAuth";
+import { apiClient } from "@/lib/api";
 import { useLocation, useNavigate } from "react-router-dom";
 
 const Files = () => {
@@ -26,23 +25,13 @@ const Files = () => {
   const [editingFile, setEditingFile] = useState<{ id: string; title: string; description?: string | null; start_date?: string | null; end_date?: string | null; status?: string | null; is_permanent?: boolean | null } | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user } = useApiAuth();
 
   const [openUpload, setOpenUpload] = useState(false);
   const [openCategory, setOpenCategory] = useState(false);
   
-  const { data: profile } = useQuery({
-    queryKey: ["profile-role", user?.id],
-    queryFn: async () => {
-      if (!user) return null;
-      const { data } = await supabase.from("profiles").select("role").eq("user_id", user.id).single();
-      return data as { role: "admin" | "operator" | "user" } | null;
-    },
-    enabled: !!user,
-  });
-  
   const { data: files, isLoading } = useFiles();
-  // const deleteFile = useDeleteFile(); // Removed - not available in PHP backend
+  const deleteFile = useDeleteFile();
 
   // Read search from query param (q)
   useEffect(() => {
@@ -68,18 +57,7 @@ const Files = () => {
     return ext || 'FILE';
   };
 
-  // Admin-only: download counts per file
-  const { data: downloadCounts } = useQuery({
-    queryKey: ["download-counts"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("downloads").select("file_id");
-      if (error) throw error;
-      const map: Record<string, number> = {};
-      data.forEach((d: any) => { map[d.file_id] = (map[d.file_id] || 0) + 1; });
-      return map;
-    },
-    enabled: profile?.role === 'admin',
-  });
+  // Note: Download counts would need to be implemented in PHP backend
 
   const isAudioFile = (filename: string, mimeType?: string) => {
     const audioExtensions = ['MP3', 'WAV', 'OGG', 'AAC', 'M4A', 'FLAC'];
@@ -93,24 +71,19 @@ const Files = () => {
   };
 
   const handleDeleteFile = async (fileId: string, fileName: string) => {
-    // TODO: Implement file deletion in PHP backend
-    console.log('Delete file requested:', fileId, fileName);
+    if (confirm(`Tem certeza que deseja excluir o arquivo "${fileName}"?`)) {
+      deleteFile.mutate(fileId);
+    }
   };
 
   const handleDirectDownload = async (file: { id: string; file_url: string; title?: string }) => {
     try {
-      const { data: userResp } = await supabase.auth.getUser();
-      const user = userResp.user;
-      const { data, error } = await supabase.storage.from("files").createSignedUrl(file.file_url, 60);
-      if (error) throw error;
-      if (data?.signedUrl) {
-        window.open(data.signedUrl, "_blank");
-      }
-      if (user) {
-        await supabase.from("downloads").insert({ file_id: file.id, user_id: user.id });
-      }
+      // Record download in backend
+      await apiClient.recordDownload(file.id);
+      // Open file URL directly (assumes file_url is accessible)
+      window.open(file.file_url, "_blank");
     } catch (e) {
-      // noop
+      console.error('Download error:', e);
     }
   };
 
@@ -131,7 +104,7 @@ const Files = () => {
             Gerencie e organize todos os arquivos disponíveis para download
           </p>
         </div>
-        {profile?.role !== 'user' && (
+        {user?.role !== 'user' && (
           <div className="flex gap-2">
             <Button onClick={() => setOpenUpload(true)}>
               <Upload className="h-4 w-4 mr-2" />
@@ -169,9 +142,9 @@ const Files = () => {
                 <TableHead>Arquivo</TableHead>
                 <TableHead>Tipo</TableHead>
                 <TableHead>Tamanho</TableHead>
-                {profile?.role === 'admin' && <TableHead>Downloads</TableHead>}
+                {user?.role === 'admin' && <TableHead>Downloads</TableHead>}
                 <TableHead>Enviado por</TableHead>
-                {profile?.role === 'admin' && <TableHead>Data Upload</TableHead>}
+                {user?.role === 'admin' && <TableHead>Data Upload</TableHead>}
                 <TableHead>Datas Vigência</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Ações</TableHead>
@@ -198,13 +171,13 @@ const Files = () => {
                       </Badge>
                     </TableCell>
                     <TableCell>{formatFileSize(file.file_size)}</TableCell>
-                    {profile?.role === 'admin' && (
+                    {user?.role === 'admin' && (
                       <TableCell>
-                        <span className="font-medium">{downloadCounts?.[file.id] || 0}</span>
+                        <span className="font-medium">0</span>
                       </TableCell>
                     )}
                     <TableCell>Usuário</TableCell>
-                    {profile?.role === 'admin' && (
+                    {user?.role === 'admin' && (
                       <TableCell>
                         {format(new Date(file.created_at), "dd/MM/yyyy", { locale: ptBR })}
                       </TableCell>
@@ -230,7 +203,7 @@ const Files = () => {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-2">
-                        {profile?.role === 'admin' && (
+                        {user?.role === 'admin' && (
                           <Button
                             size="sm"
                             variant="outline"
@@ -242,7 +215,7 @@ const Files = () => {
                         <Button size="sm" variant="outline" onClick={() => handleDirectDownload(file)}>
                           <Download className="h-3 w-3" />
                         </Button>
-                        {(profile?.role !== 'user' && file.uploaded_by === user?.id) && (
+                        {(user?.role !== 'user') && (
                           <>
                             <Button size="sm" variant="outline" onClick={() => { 
                               setEditingFile({ 
@@ -274,7 +247,7 @@ const Files = () => {
 
                   {isAudioFile(file.title, file.file_type) && (
                     <TableRow className="bg-muted/20">
-                      <TableCell colSpan={profile?.role === 'admin' ? 8 : 6} className="pt-0">
+                      <TableCell colSpan={user?.role === 'admin' ? 8 : 6} className="pt-0">
                         <div className="mt-2">
                           <AudioPlayer fileUrl={file.file_url} fileName={file.title} fileId={file.id} />
                         </div>
@@ -285,7 +258,7 @@ const Files = () => {
               ))}
               {filteredFiles.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={profile?.role === 'admin' ? 8 : 6} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={user?.role === 'admin' ? 8 : 6} className="text-center py-8 text-muted-foreground">
                     Nenhum arquivo encontrado
                   </TableCell>
                 </TableRow>

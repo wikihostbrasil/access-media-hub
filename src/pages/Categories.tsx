@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { FolderOpen, Search, Plus, FileText, Trash2 } from "lucide-react";
-import { useCategories } from "@/hooks/useApiCategories";
+import { useCategories, useDeleteCategory } from "@/hooks/useApiCategories";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CreateCategoryDialog } from "@/components/dialogs/CreateCategoryDialog";
@@ -15,7 +15,7 @@ const Categories = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [openCreate, setOpenCreate] = useState(false);
   const { data: categories, isLoading } = useCategories();
-  // const deleteCategory = useDeleteCategory(); // Removed - not available in PHP backend
+  const deleteCategory = useDeleteCategory();
   const [openEdit, setOpenEdit] = useState(false);
   const [editingCategory, setEditingCategory] = useState<{ id: string; name: string; description?: string | null } | null>(null);
   const navigate = useNavigate();
@@ -26,8 +26,9 @@ const Categories = () => {
   ) || [];
 
   const handleDeleteCategory = async (categoryId: string, categoryName: string) => {
-    // TODO: Implement category deletion in PHP backend
-    console.log('Delete category requested:', categoryId, categoryName);
+    if (confirm(`Tem certeza que deseja excluir a categoria "${categoryName}"?`)) {
+      deleteCategory.mutate(categoryId);
+    }
   };
 
   if (isLoading) {

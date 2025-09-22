@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Users, Search, Plus, FolderOpen, Trash2 } from "lucide-react";
-import { useGroups } from "@/hooks/useApiGroups";
+import { useGroups, useDeleteGroup } from "@/hooks/useApiGroups";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CreateGroupDialog } from "@/components/dialogs/CreateGroupDialog";
@@ -19,7 +19,7 @@ const Groups = () => {
   const [openMembers, setOpenMembers] = useState(false);
   const [openEdit, setOpenEdit] = useState(false);
   const { data: groups, isLoading } = useGroups();
-  // const deleteGroup = useDeleteGroup(); // Removed - not available in PHP backend
+  const deleteGroup = useDeleteGroup();
 
   const filteredGroups = groups?.filter(group =>
     group.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -27,8 +27,9 @@ const Groups = () => {
   ) || [];
 
   const handleDeleteGroup = async (groupId: string, groupName: string) => {
-    // TODO: Implement group deletion in PHP backend
-    console.log('Delete group requested:', groupId, groupName);
+    if (confirm(`Tem certeza que deseja excluir o grupo "${groupName}"?`)) {
+      deleteGroup.mutate(groupId);
+    }
   };
 
   if (isLoading) {

@@ -26,7 +26,7 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const location = useLocation();
   const currentPath = location.pathname;
-  const { user } = useAuth();
+  const { user } = useApiAuth();
 
   const { data: profile } = useQuery({
     queryKey: ['profile', user?.id],

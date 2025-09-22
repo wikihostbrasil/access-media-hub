@@ -7,45 +7,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useApiAuth } from '@/hooks/useApiAuth';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/lib/api';
 
 export default function Auth() {
   const { user, signIn, signUp } = useApiAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [mode, setMode] = useState<'signin' | 'signup' | 'reset-password'>('signin');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [forgotEmail, setForgotEmail] = useState('');
 
-  // Handle password reset mode
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const urlMode = params.get('mode');
-    
-    if (urlMode === 'reset') {
-      const hash = window.location.hash;
-      if (hash) {
-        // Extract tokens from hash
-        const hashParams = new URLSearchParams(hash.substring(1));
-        const accessToken = hashParams.get('access_token');
-        const refreshToken = hashParams.get('refresh_token');
-        
-        if (accessToken && refreshToken) {
-          // Set the session with the tokens
-          supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken
-          }).then(() => {
-            // Switch to reset password mode
-            setMode('reset-password');
-          });
-        }
-      }
-    }
-  }, []);
-
-  if (user && mode !== 'reset-password') {
+  if (user) {
     return <Navigate to="/" replace />;
   }
 
@@ -108,86 +79,27 @@ export default function Auth() {
     setLoading(false);
   };
 
-  const handleResetPassword = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleForgotPassword = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (newPassword !== confirmPassword) {
-      toast({
-        title: "Erro",
-        description: "As senhas não coincidem",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setLoading(true);
 
-    const { error } = await supabase.auth.updateUser({
-      password: newPassword
-    });
-
-    if (error) {
+    try {
+      await apiClient.forgotPassword(forgotEmail);
+      toast({
+        title: "Email enviado",
+        description: "Se o email existir, você receberá um link de recuperação.",
+      });
+    } catch (error: any) {
       toast({
         title: "Erro",
         description: error.message,
         variant: "destructive",
       });
-    } else {
-      toast({
-        title: "Sucesso",
-        description: "Senha alterada com sucesso!",
-      });
-      // Redirect to dashboard after successful password reset
-      navigate("/");
     }
     
     setLoading(false);
   };
 
-  if (mode === 'reset-password') {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="text-2xl text-center">Redefinir Senha</CardTitle>
-            <CardDescription className="text-center">
-              Digite sua nova senha
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleResetPassword} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="newPassword">Nova Senha</Label>
-                <Input
-                  id="newPassword"
-                  type="password"
-                  placeholder="••••••••"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  required
-                  disabled={loading}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirmar Nova Senha</Label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  placeholder="••••••••"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
-                  disabled={loading}
-                />
-              </div>
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Alterando..." : "Alterar Senha"}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
@@ -200,9 +112,10 @@ export default function Auth() {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="signin" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="signin">Login</TabsTrigger>
               <TabsTrigger value="signup">Cadastro</TabsTrigger>
+              <TabsTrigger value="forgot">Recuperar</TabsTrigger>
             </TabsList>
             
             <TabsContent value="signin">
@@ -231,11 +144,6 @@ export default function Auth() {
                   {loading ? "Entrando..." : "Entrar"}
                 </Button>
                 
-                <div className="text-center">
-                  <a href="/forgot-password" className="text-sm text-muted-foreground hover:text-foreground">
-                    Esqueceu sua senha?
-                  </a>
-                </div>
               </form>
             </TabsContent>
             
@@ -273,6 +181,25 @@ export default function Auth() {
                 </div>
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading ? "Criando conta..." : "Criar conta"}
+                </Button>
+              </form>
+            </TabsContent>
+            
+            <TabsContent value="forgot">
+              <form onSubmit={handleForgotPassword} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="forgot-email">Email</Label>
+                  <Input
+                    id="forgot-email"
+                    type="email"
+                    placeholder="seu@email.com"
+                    value={forgotEmail}
+                    onChange={(e) => setForgotEmail(e.target.value)}
+                    required
+                  />
+                </div>
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? "Enviando..." : "Enviar Link"}
                 </Button>
               </form>
             </TabsContent>

@@ -21,3 +21,53 @@ export const useGroups = () => {
     },
   });
 };
+
+export const useCreateGroup = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ name, description }: { name: string; description?: string }) => {
+      return apiClient.createGroup(name, description);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["groups"] });
+      toast({
+        title: "Sucesso",
+        description: "Grupo criado com sucesso!",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro",
+        description: `Erro ao criar grupo: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
+};
+
+export const useDeleteGroup = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      return apiClient.deleteGroup(id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["groups"] });
+      toast({
+        title: "Sucesso",
+        description: "Grupo deletado com sucesso!",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro",
+        description: `Erro ao deletar grupo: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
+};

@@ -35,3 +35,28 @@ export const useUploadFile = () => {
     },
   });
 };
+
+export const useDeleteFile = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      return apiClient.deleteFile(id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["files"] });
+      toast({
+        title: "Sucesso",
+        description: "Arquivo deletado com sucesso!",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro",
+        description: `Erro ao deletar arquivo: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
+};

@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Download, Search, Calendar, TrendingUp, FileText } from "lucide-react";
-import { useDownloads, useDownloadStats } from "@/hooks/useDownloads";
+import { useDownloads } from "@/hooks/useApiDownloads";
+import { useStats } from "@/hooks/useApiStats";
 import { DownloadDetailsModal } from "@/components/DownloadDetailsModal";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -13,14 +14,14 @@ import { ptBR } from "date-fns/locale";
 const Downloads = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const { data: downloads, isLoading } = useDownloads();
-  const { data: stats } = useDownloadStats();
+  const { data: stats } = useStats();
   const [openDetails, setOpenDetails] = useState(false);
   const [detailsFileId, setDetailsFileId] = useState<string>("");
   const [detailsFileName, setDetailsFileName] = useState<string>("");
 
   const filteredDownloads = downloads?.filter(download =>
-    download.files.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    download.profiles.full_name.toLowerCase().includes(searchTerm.toLowerCase())
+    (download.file_title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (download.user_name || '').toLowerCase().includes(searchTerm.toLowerCase())
   ) || [];
 
   const formatFileSize = (bytes?: number) => {
@@ -65,7 +66,7 @@ const Downloads = () => {
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats?.todayCount || 0}</div>
+            <div className="text-2xl font-bold">{stats?.downloads_today || 0}</div>
             <p className="text-xs text-muted-foreground">
               Downloads realizados hoje
             </p>
@@ -78,7 +79,7 @@ const Downloads = () => {
             <Download className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats?.totalCount || 0}</div>
+            <div className="text-2xl font-bold">{stats?.total_downloads || 0}</div>
             <p className="text-xs text-muted-foreground">
               Todos os downloads
             </p>
@@ -91,7 +92,7 @@ const Downloads = () => {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats?.uniqueUsersThisMonth || 0}</div>
+            <div className="text-2xl font-bold">{stats?.unique_users_month || 0}</div>
             <p className="text-xs text-muted-foreground">
               Este mês
             </p>
@@ -145,11 +146,11 @@ const Downloads = () => {
               {filteredDownloads.map((download) => (
                 <TableRow key={download.id}>
                   <TableCell className="font-medium">
-                    {download.files.title}
+                    {download.file_title || 'Arquivo removido'}
                   </TableCell>
                   <TableCell>
                     <div>
-                      <div className="font-medium">{download.profiles.full_name}</div>
+                      <div className="font-medium">{download.user_name || 'Usuário'}</div>
                       <div className="text-sm text-muted-foreground">
                         ID: {download.user_id.slice(0, 8)}...
                       </div>
@@ -157,10 +158,10 @@ const Downloads = () => {
                   </TableCell>
                   <TableCell>
                     <Badge variant="secondary">
-                      {getFileType(download.files.title)}
+                      {getFileType(download.filename || download.file_title || '')}
                     </Badge>
                   </TableCell>
-                  <TableCell>{formatFileSize(download.files.file_size)}</TableCell>
+                  <TableCell>N/A</TableCell>
                   <TableCell>
                     <div>
                       <div>
@@ -172,7 +173,7 @@ const Downloads = () => {
                     </div>
                   </TableCell>
                     <TableCell>
-                      <Button size="sm" variant="outline" onClick={() => { setDetailsFileId(download.file_id); setDetailsFileName(download.files.title); setOpenDetails(true); }}>
+                      <Button size="sm" variant="outline" onClick={() => { setDetailsFileId(download.file_id); setDetailsFileName(download.file_title || 'Arquivo'); setOpenDetails(true); }}>
                         Detalhes
                       </Button>
                     </TableCell>

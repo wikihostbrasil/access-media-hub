@@ -119,6 +119,10 @@ class ApiClient {
   }
 
   // Downloads methods
+  async getDownloads() {
+    return this.request<any[]>('/downloads/list.php');
+  }
+
   async recordDownload(fileId: string) {
     return this.request('/downloads/record.php', {
       method: 'POST',
@@ -131,6 +135,54 @@ class ApiClient {
     return this.request('/plays/record.php', {
       method: 'POST',
       body: JSON.stringify({ file_id: fileId }),
+    });
+  }
+
+  // Categories CRUD
+  async createCategory(name: string, description?: string) {
+    return this.request('/categories/create.php', {
+      method: 'POST',
+      body: JSON.stringify({ name, description }),
+    });
+  }
+
+  async deleteCategory(id: string) {
+    return this.request(`/categories/delete.php?id=${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Groups CRUD
+  async createGroup(name: string, description?: string) {
+    return this.request('/groups/create.php', {
+      method: 'POST',
+      body: JSON.stringify({ name, description }),
+    });
+  }
+
+  async deleteGroup(id: string) {
+    return this.request(`/groups/delete.php?id=${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Files CRUD
+  async deleteFile(id: string) {
+    return this.request(`/files/delete.php?id=${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Reports/Stats
+  async getStats() {
+    return this.request<any>('/reports/stats.php');
+  }
+
+  // Auth
+  async forgotPassword(email: string) {
+    return this.request('/auth/forgot-password.php', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
     });
   }
 }
