@@ -166,7 +166,7 @@ export const AudioPlayer = ({ fileUrl, fileName, fileId }: AudioPlayerProps) => 
             max={duration || 100}
             step={1}
             onValueChange={handleSeek}
-            className="cursor-pointer"
+            className="cursor-pointer audio-progress"
           />
         </div>
         

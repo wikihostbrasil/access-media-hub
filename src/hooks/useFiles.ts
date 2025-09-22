@@ -11,6 +11,8 @@ export interface FileData {
   file_size?: number;
   start_date?: string;
   end_date?: string;
+  status?: string;
+  is_permanent?: boolean;
   uploaded_by: string;
   created_at: string;
   updated_at: string;
@@ -36,7 +38,21 @@ export const useFiles = () => {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data as FileData[];
+      
+      // Filter files based on visibility rules
+      const now = new Date();
+      const visibleFiles = data.filter(file => {
+        // If permanent, always show
+        if (file.is_permanent) return true;
+        
+        // If not permanent, check if within validity period
+        if (file.start_date && new Date(file.start_date) > now) return false;
+        if (file.end_date && new Date(file.end_date) < now) return false;
+        
+        return true;
+      });
+      
+      return visibleFiles as FileData[];
     },
   });
 };

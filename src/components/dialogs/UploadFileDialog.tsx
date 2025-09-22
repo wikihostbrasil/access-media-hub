@@ -6,12 +6,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
-import { useUsers } from "@/hooks/useUsers";
-import { useGroups } from "@/hooks/useGroups";
-import { useCategories } from "@/hooks/useCategories";
+import { UserSearchSelect } from "@/components/UserSearchSelect";
+import { GroupSearchSelect } from "@/components/GroupSearchSelect";
+import { CategorySearchSelect } from "@/components/CategorySearchSelect";
 
 interface UploadFileDialogProps {
   open: boolean;
@@ -29,10 +30,11 @@ export const UploadFileDialog = ({ open, onOpenChange, onUploaded }: UploadFileD
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [status, setStatus] = useState("active");
+  const [isPermanent, setIsPermanent] = useState(true);
   
-  const { data: users } = useUsers();
-  const { data: groups } = useGroups();
-  const { data: categories } = useCategories();
 
   const reset = () => {
     setTitle("");
@@ -41,6 +43,10 @@ export const UploadFileDialog = ({ open, onOpenChange, onUploaded }: UploadFileD
     setSelectedUsers([]);
     setSelectedGroups([]);
     setSelectedCategories([]);
+    setStartDate("");
+    setEndDate("");
+    setStatus("active");
+    setIsPermanent(true);
   };
 
   const handleUpload = async () => {
@@ -67,6 +73,10 @@ export const UploadFileDialog = ({ open, onOpenChange, onUploaded }: UploadFileD
         file_url: path,
         file_type: file.type || null,
         file_size: file.size,
+        start_date: startDate || null,
+        end_date: endDate || null,
+        status: status,
+        is_permanent: isPermanent,
         uploaded_by: user.id,
       }).select().single();
       if (insertErr) throw insertErr;
@@ -127,71 +137,68 @@ export const UploadFileDialog = ({ open, onOpenChange, onUploaded }: UploadFileD
             <Textarea id="desc" rows={3} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Descrição opcional" />
           </div>
 
-          <div className="grid gap-2">
-            <Label>Usuários com Acesso</Label>
-            <div className="max-h-32 overflow-y-auto space-y-2 border rounded p-2">
-              {users?.map((user) => (
-                <div key={user.id} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`user-${user.id}`}
-                    checked={selectedUsers.includes(user.user_id)}
-                    onCheckedChange={(checked) => {
-                      if (checked) {
-                        setSelectedUsers([...selectedUsers, user.user_id]);
-                      } else {
-                        setSelectedUsers(selectedUsers.filter(id => id !== user.user_id));
-                      }
-                    }}
+          <div className="grid gap-4">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="permanent">Arquivo Permanente</Label>
+              <Switch
+                id="permanent"
+                checked={isPermanent}
+                onCheckedChange={setIsPermanent}
+              />
+            </div>
+            
+            {!isPermanent && (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="startDate">Data de Início</Label>
+                  <Input
+                    id="startDate"
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
                   />
-                  <Label htmlFor={`user-${user.id}`} className="text-sm">{user.full_name}</Label>
                 </div>
-              ))}
+                <div className="grid gap-2">
+                  <Label htmlFor="endDate">Data de Fim</Label>
+                  <Input
+                    id="endDate"
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="grid gap-2">
+              <Label htmlFor="status">Status</Label>
+              <Select value={status} onValueChange={setStatus}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Ativo</SelectItem>
+                  <SelectItem value="inactive">Inativo</SelectItem>
+                  <SelectItem value="draft">Rascunho</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
-          <div className="grid gap-2">
-            <Label>Grupos com Acesso</Label>
-            <div className="max-h-32 overflow-y-auto space-y-2 border rounded p-2">
-              {groups?.map((group) => (
-                <div key={group.id} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`group-${group.id}`}
-                    checked={selectedGroups.includes(group.id)}
-                    onCheckedChange={(checked) => {
-                      if (checked) {
-                        setSelectedGroups([...selectedGroups, group.id]);
-                      } else {
-                        setSelectedGroups(selectedGroups.filter(id => id !== group.id));
-                      }
-                    }}
-                  />
-                  <Label htmlFor={`group-${group.id}`} className="text-sm">{group.name}</Label>
-                </div>
-              ))}
-            </div>
-          </div>
+          <UserSearchSelect 
+            selectedUsers={selectedUsers} 
+            onSelectionChange={setSelectedUsers}
+          />
 
-          <div className="grid gap-2">
-            <Label>Categorias com Acesso</Label>
-            <div className="max-h-32 overflow-y-auto space-y-2 border rounded p-2">
-              {categories?.map((category) => (
-                <div key={category.id} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`category-${category.id}`}
-                    checked={selectedCategories.includes(category.id)}
-                    onCheckedChange={(checked) => {
-                      if (checked) {
-                        setSelectedCategories([...selectedCategories, category.id]);
-                      } else {
-                        setSelectedCategories(selectedCategories.filter(id => id !== category.id));
-                      }
-                    }}
-                  />
-                  <Label htmlFor={`category-${category.id}`} className="text-sm">{category.name}</Label>
-                </div>
-              ))}
-            </div>
-          </div>
+          <GroupSearchSelect 
+            selectedGroups={selectedGroups} 
+            onSelectionChange={setSelectedGroups}
+          />
+
+          <CategorySearchSelect 
+            selectedCategories={selectedCategories} 
+            onSelectionChange={setSelectedCategories}
+          />
 
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>Cancelar</Button>

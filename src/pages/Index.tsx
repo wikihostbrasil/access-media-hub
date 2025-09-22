@@ -22,25 +22,41 @@ const Index = () => {
   });
 
   const { data: stats } = useQuery({
-    queryKey: ['dashboard-stats', user?.id],
+    queryKey: ['dashboard-stats', user?.id, profile?.role],
     queryFn: async () => {
-      if (!user) return null;
+      if (!user || !profile) return null;
       
-      const [filesResult, usersResult, groupsResult, downloadsResult] = await Promise.all([
-        supabase.from('files').select('id', { count: 'exact' }),
-        supabase.from('profiles').select('id', { count: 'exact' }),
-        supabase.from('groups').select('id', { count: 'exact' }),
-        supabase.from('downloads').select('id', { count: 'exact' })
-      ]);
+      if (profile.role === 'user') {
+        // For regular users, show only files they have access to and their downloads
+        const [myFilesResult, myDownloadsResult] = await Promise.all([
+          supabase.from('files').select('id', { count: 'exact' }),
+          supabase.from('downloads').select('id', { count: 'exact' }).eq('user_id', user.id)
+        ]);
 
-      return {
-        files: filesResult.count || 0,
-        users: usersResult.count || 0,
-        groups: groupsResult.count || 0,
-        downloads: downloadsResult.count || 0,
-      };
+        return {
+          files: myFilesResult.count || 0,
+          downloads: myDownloadsResult.count || 0,
+          users: null,
+          groups: null,
+        };
+      } else {
+        // For admins and operators, show all stats
+        const [filesResult, usersResult, groupsResult, downloadsResult] = await Promise.all([
+          supabase.from('files').select('id', { count: 'exact' }),
+          supabase.from('profiles').select('id', { count: 'exact' }),
+          supabase.from('groups').select('id', { count: 'exact' }),
+          supabase.from('downloads').select('id', { count: 'exact' })
+        ]);
+
+        return {
+          files: filesResult.count || 0,
+          users: usersResult.count || 0,
+          groups: groupsResult.count || 0,
+          downloads: downloadsResult.count || 0,
+        };
+      }
     },
-    enabled: !!user,
+    enabled: !!user && !!profile,
   });
 
   return (
@@ -52,58 +68,66 @@ const Index = () => {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className={`grid grid-cols-1 md:grid-cols-2 ${profile?.role === 'user' ? 'lg:grid-cols-2' : 'lg:grid-cols-4'} gap-6`}>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total de Arquivos</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              {profile?.role === 'user' ? 'Meus Arquivos' : 'Total de Arquivos'}
+            </CardTitle>
             <Files className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats?.files || 0}</div>
             <p className="text-xs text-muted-foreground">
-              Arquivos disponíveis
+              {profile?.role === 'user' ? 'Arquivos disponíveis para você' : 'Arquivos no sistema'}
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Usuários</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats?.users || 0}</div>
-            <p className="text-xs text-muted-foreground">
-              Usuários cadastrados
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Grupos</CardTitle>
-            <FolderOpen className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats?.groups || 0}</div>
-            <p className="text-xs text-muted-foreground">
-              Grupos criados
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Downloads</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              {profile?.role === 'user' ? 'Meus Downloads' : 'Downloads'}
+            </CardTitle>
             <Download className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats?.downloads || 0}</div>
             <p className="text-xs text-muted-foreground">
-              Downloads realizados
+              {profile?.role === 'user' ? 'Downloads que você fez' : 'Downloads realizados'}
             </p>
           </CardContent>
         </Card>
+
+        {profile?.role !== 'user' && (
+          <>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Usuários</CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats?.users || 0}</div>
+                <p className="text-xs text-muted-foreground">
+                  Usuários cadastrados
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Grupos</CardTitle>
+                <FolderOpen className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats?.groups || 0}</div>
+                <p className="text-xs text-muted-foreground">
+                  Grupos criados
+                </p>
+              </CardContent>
+            </Card>
+          </>
+        )}
       </div>
 
       <Card>
@@ -119,9 +143,20 @@ const Index = () => {
               Este sistema permite o controle completo de downloads com diferentes perfis de acesso:
             </p>
             <ul className="list-disc list-inside space-y-2 text-sm text-muted-foreground">
-              <li><strong>Admin:</strong> Acesso completo a todas as funcionalidades</li>
-              <li><strong>Operador:</strong> Gerencia usuários, grupos, categorias e arquivos</li>
-              <li><strong>Usuário:</strong> Acessa e baixa arquivos autorizados</li>
+              {profile?.role === 'user' ? (
+                <>
+                  <li>Acesse arquivos autorizados para você</li>
+                  <li>Faça download de documentos e mídias</li>
+                  <li>Use o player de áudio integrado</li>
+                  <li>Acompanhe seu histórico de downloads</li>
+                </>
+              ) : (
+                <>
+                  <li><strong>Admin:</strong> Acesso completo a todas as funcionalidades</li>
+                  <li><strong>Operador:</strong> Gerencia usuários, grupos, categorias e arquivos</li>
+                  <li><strong>Usuário:</strong> Acessa e baixa arquivos autorizados</li>
+                </>
+              )}
             </ul>
           </div>
         </CardContent>

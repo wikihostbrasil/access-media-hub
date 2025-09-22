@@ -103,3 +103,17 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+/* Audio Player Progress Bar with proper contrast */
+.audio-progress [role="slider"] {
+  background: hsl(var(--primary));
+}
+
+.audio-progress [data-orientation="horizontal"] {
+  background: hsl(var(--muted-foreground) / 0.3);
+  height: 4px;
+}
+
+.audio-progress [data-orientation="horizontal"] > span[data-orientation="horizontal"] {
+  background: hsl(var(--primary));
+}

@@ -149,7 +149,9 @@ export type Database = {
           file_type: string | null
           file_url: string
           id: string
+          is_permanent: boolean | null
           start_date: string | null
+          status: string | null
           title: string
           updated_at: string
           uploaded_by: string
@@ -162,7 +164,9 @@ export type Database = {
           file_type?: string | null
           file_url: string
           id?: string
+          is_permanent?: boolean | null
           start_date?: string | null
+          status?: string | null
           title: string
           updated_at?: string
           uploaded_by: string
@@ -175,7 +179,9 @@ export type Database = {
           file_type?: string | null
           file_url?: string
           id?: string
+          is_permanent?: boolean | null
           start_date?: string | null
+          status?: string | null
           title?: string
           updated_at?: string
           uploaded_by?: string
