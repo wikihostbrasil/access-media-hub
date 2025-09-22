@@ -83,7 +83,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             // Insert file record
             $file_id = bin2hex(random_bytes(16));
-            $file_url = '/uploads/' . $file_name;
+            $file_url = 'uploads/' . $file_name;
             
             $query = "INSERT INTO files (id, title, description, file_url, file_type, file_size, uploaded_by, created_at) 
                       VALUES (:id, :title, :description, :file_url, :file_type, :file_size, :uploaded_by, NOW())";
