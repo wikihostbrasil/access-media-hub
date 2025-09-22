@@ -4,9 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
+import { useUsers } from "@/hooks/useUsers";
+import { useGroups } from "@/hooks/useGroups";
+import { useCategories } from "@/hooks/useCategories";
 
 interface UploadFileDialogProps {
   open: boolean;
@@ -21,11 +26,21 @@ export const UploadFileDialog = ({ open, onOpenChange, onUploaded }: UploadFileD
   const [description, setDescription] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  
+  const { data: users } = useUsers();
+  const { data: groups } = useGroups();
+  const { data: categories } = useCategories();
 
   const reset = () => {
     setTitle("");
     setDescription("");
     setFile(null);
+    setSelectedUsers([]);
+    setSelectedGroups([]);
+    setSelectedCategories([]);
   };
 
   const handleUpload = async () => {
@@ -46,15 +61,35 @@ export const UploadFileDialog = ({ open, onOpenChange, onUploaded }: UploadFileD
         .upload(path, file, { contentType: file.type || "application/octet-stream", upsert: false });
       if (uploadErr) throw uploadErr;
 
-      const { error: insertErr } = await supabase.from("files").insert({
+      const { data: fileData, error: insertErr } = await supabase.from("files").insert({
         title: title || file.name,
         description: description || null,
         file_url: path,
         file_type: file.type || null,
         file_size: file.size,
         uploaded_by: user.id,
-      });
+      }).select().single();
       if (insertErr) throw insertErr;
+
+      // Create file permissions for selected users, groups, and categories
+      const permissions = [];
+      
+      for (const userId of selectedUsers) {
+        permissions.push({ file_id: fileData.id, user_id: userId });
+      }
+      
+      for (const groupId of selectedGroups) {
+        permissions.push({ file_id: fileData.id, group_id: groupId });
+      }
+      
+      for (const categoryId of selectedCategories) {
+        permissions.push({ file_id: fileData.id, category_id: categoryId });
+      }
+      
+      if (permissions.length > 0) {
+        const { error: permErr } = await supabase.from("file_permissions").insert(permissions);
+        if (permErr) throw permErr;
+      }
 
       await queryClient.invalidateQueries({ queryKey: ["files"] });
       toast({ title: "Sucesso", description: "Arquivo enviado e cadastrado" });
@@ -90,6 +125,72 @@ export const UploadFileDialog = ({ open, onOpenChange, onUploaded }: UploadFileD
           <div className="grid gap-2">
             <Label htmlFor="desc">Descrição</Label>
             <Textarea id="desc" rows={3} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Descrição opcional" />
+          </div>
+
+          <div className="grid gap-2">
+            <Label>Usuários com Acesso</Label>
+            <div className="max-h-32 overflow-y-auto space-y-2 border rounded p-2">
+              {users?.map((user) => (
+                <div key={user.id} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`user-${user.id}`}
+                    checked={selectedUsers.includes(user.user_id)}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        setSelectedUsers([...selectedUsers, user.user_id]);
+                      } else {
+                        setSelectedUsers(selectedUsers.filter(id => id !== user.user_id));
+                      }
+                    }}
+                  />
+                  <Label htmlFor={`user-${user.id}`} className="text-sm">{user.full_name}</Label>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid gap-2">
+            <Label>Grupos com Acesso</Label>
+            <div className="max-h-32 overflow-y-auto space-y-2 border rounded p-2">
+              {groups?.map((group) => (
+                <div key={group.id} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`group-${group.id}`}
+                    checked={selectedGroups.includes(group.id)}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        setSelectedGroups([...selectedGroups, group.id]);
+                      } else {
+                        setSelectedGroups(selectedGroups.filter(id => id !== group.id));
+                      }
+                    }}
+                  />
+                  <Label htmlFor={`group-${group.id}`} className="text-sm">{group.name}</Label>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid gap-2">
+            <Label>Categorias com Acesso</Label>
+            <div className="max-h-32 overflow-y-auto space-y-2 border rounded p-2">
+              {categories?.map((category) => (
+                <div key={category.id} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`category-${category.id}`}
+                    checked={selectedCategories.includes(category.id)}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        setSelectedCategories([...selectedCategories, category.id]);
+                      } else {
+                        setSelectedCategories(selectedCategories.filter(id => id !== category.id));
+                      }
+                    }}
+                  />
+                  <Label htmlFor={`category-${category.id}`} className="text-sm">{category.name}</Label>
+                </div>
+              ))}
+            </div>
           </div>
 
           <div className="flex justify-end gap-2 pt-2">

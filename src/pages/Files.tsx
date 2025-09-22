@@ -11,6 +11,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { UploadFileDialog } from "@/components/dialogs/UploadFileDialog";
 import { CreateCategoryDialog } from "@/components/dialogs/CreateCategoryDialog";
+import { AudioPlayer } from "@/components/AudioPlayer";
 import { supabase } from "@/integrations/supabase/client";
 
 const Files = () => {
@@ -38,6 +39,12 @@ const Files = () => {
   const getFileExtension = (filename: string) => {
     const ext = filename.split('.').pop()?.toUpperCase();
     return ext || 'FILE';
+  };
+
+  const isAudioFile = (filename: string, mimeType?: string) => {
+    const audioExtensions = ['MP3', 'WAV', 'OGG', 'AAC', 'M4A', 'FLAC'];
+    const extension = filename.split('.').pop()?.toUpperCase();
+    return audioExtensions.includes(extension || '') || mimeType?.startsWith('audio/');
   };
 
   const handleShowDownloads = (fileId: string, fileName: string) => {
@@ -129,17 +136,26 @@ const Files = () => {
             <TableBody>
               {filteredFiles.map((file) => (
                 <TableRow key={file.id}>
-                  <TableCell className="flex items-center gap-2">
-                    <FileIcon className="h-4 w-4" />
-                    <div>
-                      <div className="font-medium">{file.title}</div>
-                      {file.description && (
-                        <div className="text-sm text-muted-foreground">
-                          {file.description}
-                        </div>
-                      )}
-                    </div>
-                  </TableCell>
+                   <TableCell className="flex items-center gap-2">
+                     <FileIcon className="h-4 w-4" />
+                     <div className="flex-1">
+                       <div className="font-medium">{file.title}</div>
+                       {file.description && (
+                         <div className="text-sm text-muted-foreground">
+                           {file.description}
+                         </div>
+                       )}
+                       {isAudioFile(file.title, file.file_type) && (
+                         <div className="mt-2">
+                           <AudioPlayer 
+                             fileUrl={file.file_url}
+                             fileName={file.title}
+                             fileId={file.id}
+                           />
+                         </div>
+                       )}
+                     </div>
+                   </TableCell>
                   <TableCell>
                     <Badge variant="secondary">
                       {getFileExtension(file.title)}
