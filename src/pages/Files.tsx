@@ -23,14 +23,14 @@ const Files = () => {
   const [selectedFileId, setSelectedFileId] = useState<string | null>(null);
   const [selectedFileName, setSelectedFileName] = useState("");
   const [openEdit, setOpenEdit] = useState(false);
-  const [editingFile, setEditingFile] = useState<{ id: string; title: string; description?: string | null } | null>(null);
+  const [editingFile, setEditingFile] = useState<{ id: string; title: string; description?: string | null; start_date?: string | null; end_date?: string | null; status?: string | null; is_permanent?: boolean | null } | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
 
   const [openUpload, setOpenUpload] = useState(false);
   const [openCategory, setOpenCategory] = useState(false);
-  const { data: files, isLoading } = useFiles();
+  
   const { data: profile } = useQuery({
     queryKey: ["profile-role", user?.id],
     queryFn: async () => {
@@ -40,6 +40,8 @@ const Files = () => {
     },
     enabled: !!user,
   });
+  
+  const { data: files, isLoading } = useFiles(profile?.role === 'admin');
   const deleteFile = useDeleteFile();
 
   // Read search from query param (q)
@@ -170,7 +172,9 @@ const Files = () => {
                 <TableHead>Tamanho</TableHead>
                 {profile?.role === 'admin' && <TableHead>Downloads</TableHead>}
                 <TableHead>Enviado por</TableHead>
-                <TableHead>Data Upload</TableHead>
+                {profile?.role === 'admin' && <TableHead>Data Upload</TableHead>}
+                <TableHead>Datas Vigência</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead>Ações</TableHead>
               </TableRow>
             </TableHeader>
@@ -201,8 +205,29 @@ const Files = () => {
                       </TableCell>
                     )}
                     <TableCell>Usuário</TableCell>
+                    {profile?.role === 'admin' && (
+                      <TableCell>
+                        {format(new Date(file.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                      </TableCell>
+                    )}
                     <TableCell>
-                      {format(new Date(file.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                      <div className="text-xs">
+                        {file.start_date && (
+                          <div>Início: {format(new Date(file.start_date), "dd/MM/yyyy", { locale: ptBR })}</div>
+                        )}
+                        {file.end_date && (
+                          <div>Fim: {format(new Date(file.end_date), "dd/MM/yyyy", { locale: ptBR })}</div>
+                        )}
+                        {file.is_permanent && <div className="text-green-600">Permanente</div>}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col gap-1">
+                        <Badge variant={file.status === 'active' ? 'default' : 'secondary'}>
+                          {file.status === 'active' ? 'Ativo' : file.status === 'inactive' ? 'Inativo' : 'Arquivado'}
+                        </Badge>
+                        {file.deleted_at && <Badge variant="destructive">Excluído</Badge>}
+                      </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-2">
@@ -218,24 +243,39 @@ const Files = () => {
                         <Button size="sm" variant="outline" onClick={() => handleDirectDownload(file)}>
                           <Download className="h-3 w-3" />
                         </Button>
-                        <Button size="sm" variant="outline" onClick={() => { setEditingFile({ id: file.id, title: file.title, description: file.description }); setOpenEdit(true); }}>
-                          <Edit className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleDeleteFile(file.id, file.title)}
-                          disabled={deleteFile.isPending}
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
+                        {(profile?.role !== 'user' && file.uploaded_by === user?.id) && (
+                          <>
+                            <Button size="sm" variant="outline" onClick={() => { 
+                              setEditingFile({ 
+                                id: file.id, 
+                                title: file.title, 
+                                description: file.description,
+                                start_date: file.start_date,
+                                end_date: file.end_date,
+                                status: file.status,
+                                is_permanent: file.is_permanent
+                              }); 
+                              setOpenEdit(true); 
+                            }}>
+                              <Edit className="h-3 w-3" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleDeleteFile(file.id, file.title)}
+                              disabled={deleteFile.isPending}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
 
                   {isAudioFile(file.title, file.file_type) && (
                     <TableRow className="bg-muted/20">
-                      <TableCell colSpan={7} className="pt-0">
+                      <TableCell colSpan={profile?.role === 'admin' ? 8 : 6} className="pt-0">
                         <div className="mt-2">
                           <AudioPlayer fileUrl={file.file_url} fileName={file.title} fileId={file.id} />
                         </div>
@@ -246,7 +286,7 @@ const Files = () => {
               ))}
               {filteredFiles.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={profile?.role === 'admin' ? 8 : 6} className="text-center py-8 text-muted-foreground">
                     Nenhum arquivo encontrado
                   </TableCell>
                 </TableRow>

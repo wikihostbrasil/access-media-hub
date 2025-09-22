@@ -16,6 +16,7 @@ export interface FileData {
   uploaded_by: string;
   created_at: string;
   updated_at: string;
+  deleted_at?: string;
 }
 
 export interface DownloadRecord {
@@ -28,9 +29,9 @@ export interface DownloadRecord {
   };
 }
 
-export const useFiles = () => {
+export const useFiles = (isAdmin = false) => {
   return useQuery({
-    queryKey: ["files"],
+    queryKey: ["files", isAdmin],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("files")
@@ -39,11 +40,19 @@ export const useFiles = () => {
 
       if (error) throw error;
       
-      // Filter files based on visibility rules
+      // If admin, show all files (including deleted, expired, blocked)
+      if (isAdmin) {
+        return data as FileData[];
+      }
+      
+      // For regular users, filter files based on visibility rules
       const now = new Date();
       const visibleFiles = data.filter(file => {
         // Only show active files
         if (file.status && file.status !== 'active') return false;
+
+        // Skip deleted files for regular users
+        if (file.deleted_at) return false;
 
         // If permanent, always show
         if (file.is_permanent) return true;
@@ -138,9 +147,10 @@ export const useDeleteFile = () => {
 
   return useMutation({
     mutationFn: async (fileId: string) => {
+      // Soft delete - just mark as deleted
       const { error } = await supabase
         .from("files")
-        .delete()
+        .update({ deleted_at: new Date().toISOString() })
         .eq("id", fileId);
 
       if (error) throw error;

@@ -143,6 +143,7 @@ export type Database = {
       files: {
         Row: {
           created_at: string
+          deleted_at: string | null
           description: string | null
           end_date: string | null
           file_size: number | null
@@ -158,6 +159,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          deleted_at?: string | null
           description?: string | null
           end_date?: string | null
           file_size?: number | null
@@ -173,6 +175,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          deleted_at?: string | null
           description?: string | null
           end_date?: string | null
           file_size?: number | null
@@ -212,6 +215,27 @@ export type Database = {
           id?: string
           name?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      plays: {
+        Row: {
+          file_id: string
+          id: string
+          played_at: string
+          user_id: string
+        }
+        Insert: {
+          file_id: string
+          id?: string
+          played_at?: string
+          user_id: string
+        }
+        Update: {
+          file_id?: string
+          id?: string
+          played_at?: string
+          user_id?: string
         }
         Relationships: []
       }

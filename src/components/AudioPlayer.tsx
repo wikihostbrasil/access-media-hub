@@ -41,18 +41,18 @@ export const AudioPlayer = ({ fileUrl, fileName, fileId }: AudioPlayerProps) => 
     getAudioUrl();
   }, [fileUrl]);
 
-  // Track download when audio is played
-  const trackDownload = async () => {
+  // Track play when audio is played (not download)
+  const trackPlay = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        await supabase.from("downloads").insert({
+        await supabase.from("plays").insert({
           file_id: fileId,
           user_id: user.id,
         });
       }
     } catch (error) {
-      console.error("Error tracking download:", error);
+      console.error("Error tracking play:", error);
     }
   };
 
@@ -63,9 +63,9 @@ export const AudioPlayer = ({ fileUrl, fileName, fileId }: AudioPlayerProps) => 
       audioRef.current.pause();
     } else {
       audioRef.current.play();
-      // Track as download when first played
+      // Track as play when first played
       if (currentTime === 0) {
-        trackDownload();
+        trackPlay();
       }
     }
     setIsPlaying(!isPlaying);
@@ -116,8 +116,14 @@ export const AudioPlayer = ({ fileUrl, fileName, fileId }: AudioPlayerProps) => 
       a.click();
       URL.revokeObjectURL(url);
       
-      // Track download
-      trackDownload();
+      // Track download (not play)
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase.from("downloads").insert({
+          file_id: fileId,
+          user_id: user.id,
+        });
+      }
     } catch (error) {
       console.error("Error downloading file:", error);
     }
