@@ -47,15 +47,19 @@ jobs:
         name: dist-files
         path: dist/
         
-    - name: Deploy to server (FTP)
-      if: ${{ secrets.FTP_HOST }}
+    - name: Deploy to cPanel (FTP)
+      if: ${{ secrets.CPANEL_FTP_HOST }}
       uses: SamKirkland/FTP-Deploy-Action@v4.3.5
       with:
-        server: ${{ secrets.FTP_HOST }}
-        username: ${{ secrets.FTP_USERNAME }}
-        password: ${{ secrets.FTP_PASSWORD }}
+        server: ${{ secrets.CPANEL_FTP_HOST }}
+        username: ${{ secrets.CPANEL_FTP_USERNAME }}
+        password: ${{ secrets.CPANEL_FTP_PASSWORD }}
         local-dir: ./dist/
         server-dir: /public_html/
+        exclude: |
+          **/.git*
+          **/.git*/**
+          **/node_modules/**
         
     - name: Deploy notification
       if: success()
