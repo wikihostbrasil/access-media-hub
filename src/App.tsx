@@ -5,11 +5,9 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { AppSidebar } from "@/components/AppSidebar";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { useAuth } from "@/hooks/useAuth";
+import { useApiAuth } from "@/hooks/useApiAuth";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
 
@@ -38,16 +36,8 @@ const queryClient = new QueryClient({
 });
 
 function AuthenticatedApp() {
-  const { user, loading, signOut } = useAuth();
-  const { data: profile } = useQuery({
-    queryKey: ['profile-role', user?.id],
-    queryFn: async () => {
-      if (!user) return null;
-      const { data } = await supabase.from('profiles').select('role').eq('user_id', user.id).single();
-      return data as { role: 'admin' | 'operator' | 'user' } | null;
-    },
-    enabled: !!user,
-  });
+  const { user, loading, signOut } = useApiAuth();
+  const profile = user ? { role: user.role } : null;
 
   if (loading) {
     return (

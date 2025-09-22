@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { FileIcon, Download, Search, Plus, Upload, BarChart3, Edit, Trash2 } from "lucide-react";
-import { useFiles, useDeleteFile } from "@/hooks/useFiles";
+import { useFiles } from "@/hooks/useApiFiles";
 import { DownloadDetailsModal } from "@/components/DownloadDetailsModal";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -41,8 +41,8 @@ const Files = () => {
     enabled: !!user,
   });
   
-  const { data: files, isLoading } = useFiles(profile?.role === 'admin');
-  const deleteFile = useDeleteFile();
+  const { data: files, isLoading } = useFiles();
+  // const deleteFile = useDeleteFile(); // Removed - not available in PHP backend
 
   // Read search from query param (q)
   useEffect(() => {
@@ -93,9 +93,8 @@ const Files = () => {
   };
 
   const handleDeleteFile = async (fileId: string, fileName: string) => {
-    if (window.confirm(`Tem certeza que deseja excluir o arquivo "${fileName}"?`)) {
-      deleteFile.mutate(fileId);
-    }
+    // TODO: Implement file deletion in PHP backend
+    console.log('Delete file requested:', fileId, fileName);
   };
 
   const handleDirectDownload = async (file: { id: string; file_url: string; title?: string }) => {
@@ -263,7 +262,7 @@ const Files = () => {
                               size="sm"
                               variant="outline"
                               onClick={() => handleDeleteFile(file.id, file.title)}
-                              disabled={deleteFile.isPending}
+                              
                             >
                               <Trash2 className="h-3 w-3" />
                             </Button>

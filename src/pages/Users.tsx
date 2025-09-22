@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { UserPlus, Search, Shield, User, Settings } from "lucide-react";
-import { useUsers, useUpdateUserRole, useToggleUserStatus } from "@/hooks/useUsers";
+import { useUsers } from "@/hooks/useApiUsers";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { InviteUserDialog } from "@/components/dialogs/InviteUserDialog";
@@ -18,8 +18,8 @@ const Users = () => {
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [openEdit, setOpenEdit] = useState(false);
   const { data: users, isLoading } = useUsers();
-  const updateUserRole = useUpdateUserRole();
-  const toggleUserStatus = useToggleUserStatus();
+  // const updateUserRole = useUpdateUserRole(); // Removed - not available in PHP backend
+  // const toggleUserStatus = useToggleUserStatus(); // Removed - not available in PHP backend
 
   const filteredUsers = users?.filter(user =>
     user.full_name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -52,9 +52,8 @@ const Users = () => {
   };
 
   const handleRoleChange = (userId: string, newRole: "admin" | "operator" | "user") => {
-    if (confirm(`Tem certeza que deseja alterar o papel deste usuário para ${newRole}?`)) {
-      updateUserRole.mutate({ userId, role: newRole });
-    }
+    // TODO: Implement role change in PHP backend
+    console.log('Role change requested:', userId, newRole);
   };
 
   const handleEditUser = (user: any) => {
@@ -198,15 +197,14 @@ const Users = () => {
                           size="sm" 
                           variant="outline"
                           onClick={() => handleRoleChange(user.user_id, user.role === "admin" ? "user" : "admin")}
-                          disabled={updateUserRole.isPending}
+                          
                         >
                           {user.role === "admin" ? "Remover Admin" : "Tornar Admin"}
                         </Button>
                         <Button 
                           size="sm" 
                           variant={user.active ? "destructive" : "default"}
-                          onClick={() => toggleUserStatus.mutate({ userId: user.user_id, active: !user.active })}
-                          disabled={toggleUserStatus.isPending}
+                          onClick={() => console.log('Toggle status:', user.user_id)}
                         >
                           {user.active ? "Bloquear" : "Ativar"}
                         </Button>

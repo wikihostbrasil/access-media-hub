@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { FolderOpen, Search, Plus, FileText, Trash2 } from "lucide-react";
-import { useCategories, useDeleteCategory } from "@/hooks/useCategories";
+import { useCategories } from "@/hooks/useApiCategories";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CreateCategoryDialog } from "@/components/dialogs/CreateCategoryDialog";
@@ -15,7 +15,7 @@ const Categories = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [openCreate, setOpenCreate] = useState(false);
   const { data: categories, isLoading } = useCategories();
-  const deleteCategory = useDeleteCategory();
+  // const deleteCategory = useDeleteCategory(); // Removed - not available in PHP backend
   const [openEdit, setOpenEdit] = useState(false);
   const [editingCategory, setEditingCategory] = useState<{ id: string; name: string; description?: string | null } | null>(null);
   const navigate = useNavigate();
@@ -26,9 +26,8 @@ const Categories = () => {
   ) || [];
 
   const handleDeleteCategory = async (categoryId: string, categoryName: string) => {
-    if (window.confirm(`Tem certeza que deseja excluir a categoria "${categoryName}"?`)) {
-      deleteCategory.mutate(categoryId);
-    }
+    // TODO: Implement category deletion in PHP backend
+    console.log('Delete category requested:', categoryId, categoryName);
   };
 
   if (isLoading) {
@@ -136,7 +135,7 @@ const Categories = () => {
                       {category.file_count || 0} arquivos
                     </Badge>
                     <div className="text-sm text-muted-foreground">
-                      {category.profiles?.full_name || "Usuário"}
+                      {category.created_by_name || "Usuário"}
                     </div>
                   </div>
                   <div className="text-sm text-muted-foreground mb-3">
@@ -153,7 +152,6 @@ const Categories = () => {
                       size="sm" 
                       variant="outline"
                       onClick={() => handleDeleteCategory(category.id, category.name)}
-                      disabled={deleteCategory.isPending}
                     >
                       <Trash2 className="h-3 w-3" />
                     </Button>

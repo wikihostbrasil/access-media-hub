@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Users, Search, Plus, FolderOpen, Trash2 } from "lucide-react";
-import { useGroups, useDeleteGroup } from "@/hooks/useGroups";
+import { useGroups } from "@/hooks/useApiGroups";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CreateGroupDialog } from "@/components/dialogs/CreateGroupDialog";
@@ -19,7 +19,7 @@ const Groups = () => {
   const [openMembers, setOpenMembers] = useState(false);
   const [openEdit, setOpenEdit] = useState(false);
   const { data: groups, isLoading } = useGroups();
-  const deleteGroup = useDeleteGroup();
+  // const deleteGroup = useDeleteGroup(); // Removed - not available in PHP backend
 
   const filteredGroups = groups?.filter(group =>
     group.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -27,9 +27,8 @@ const Groups = () => {
   ) || [];
 
   const handleDeleteGroup = async (groupId: string, groupName: string) => {
-    if (window.confirm(`Tem certeza que deseja excluir o grupo "${groupName}"?`)) {
-      deleteGroup.mutate(groupId);
-    }
+    // TODO: Implement group deletion in PHP backend
+    console.log('Delete group requested:', groupId, groupName);
   };
 
   if (isLoading) {
@@ -132,7 +131,7 @@ const Groups = () => {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    {group.profiles?.full_name || "Usuário"}
+                    {group.created_by_name || "Usuário"}
                   </TableCell>
                   <TableCell>
                     {format(new Date(group.created_at), "dd/MM/yyyy", { locale: ptBR })}
@@ -156,7 +155,6 @@ const Groups = () => {
                         size="sm" 
                         variant="outline"
                         onClick={() => handleDeleteGroup(group.id, group.name)}
-                        disabled={deleteGroup.isPending}
                       >
                         <Trash2 className="h-3 w-3" />
                       </Button>
