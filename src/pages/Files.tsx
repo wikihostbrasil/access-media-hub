@@ -4,34 +4,55 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { FileIcon, Download, Search, Plus, Upload } from "lucide-react";
+import { FileIcon, Download, Search, Plus, Upload, BarChart3, Edit, Trash2 } from "lucide-react";
+import { useFiles, useDeleteFile } from "@/hooks/useFiles";
+import { DownloadDetailsModal } from "@/components/DownloadDetailsModal";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 const Files = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedFileId, setSelectedFileId] = useState<string | null>(null);
+  const [selectedFileName, setSelectedFileName] = useState("");
 
-  // Mock data - em uma implementação real viria do Supabase
-  const files = [
-    {
-      id: 1,
-      name: "documento.pdf",
-      size: "2.3 MB",
-      category: "Documentos",
-      downloads: 15,
-      uploadDate: "2024-01-15",
-    },
-    {
-      id: 2,
-      name: "imagem.jpg",
-      size: "1.8 MB", 
-      category: "Imagens",
-      downloads: 8,
-      uploadDate: "2024-01-20",
-    },
-  ];
+  const { data: files, isLoading } = useFiles();
+  const deleteFile = useDeleteFile();
 
-  const filteredFiles = files.filter(file =>
-    file.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredFiles = files?.filter(file =>
+    file.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    file.description?.toLowerCase().includes(searchTerm.toLowerCase())
+  ) || [];
+
+  const formatFileSize = (bytes?: number) => {
+    if (!bytes) return "N/A";
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(1024));
+    return `${(bytes / Math.pow(1024, i)).toFixed(1)} ${sizes[i]}`;
+  };
+
+  const getFileExtension = (filename: string) => {
+    const ext = filename.split('.').pop()?.toUpperCase();
+    return ext || 'FILE';
+  };
+
+  const handleShowDownloads = (fileId: string, fileName: string) => {
+    setSelectedFileId(fileId);
+    setSelectedFileName(fileName);
+  };
+
+  const handleDeleteFile = async (fileId: string, fileName: string) => {
+    if (window.confirm(`Tem certeza que deseja excluir o arquivo "${fileName}"?`)) {
+      deleteFile.mutate(fileId);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-lg">Carregando arquivos...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -58,7 +79,7 @@ const Files = () => {
         <CardHeader>
           <CardTitle>Biblioteca de Arquivos</CardTitle>
           <CardDescription>
-            Total de {files.length} arquivos disponíveis
+            Total de {filteredFiles.length} arquivos disponíveis
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -76,9 +97,10 @@ const Files = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Arquivo</TableHead>
-                <TableHead>Categoria</TableHead>
+                <TableHead>Tipo</TableHead>
                 <TableHead>Tamanho</TableHead>
                 <TableHead>Downloads</TableHead>
+                <TableHead>Enviado por</TableHead>
                 <TableHead>Data Upload</TableHead>
                 <TableHead>Ações</TableHead>
               </TableRow>
@@ -88,30 +110,80 @@ const Files = () => {
                 <TableRow key={file.id}>
                   <TableCell className="flex items-center gap-2">
                     <FileIcon className="h-4 w-4" />
-                    {file.name}
+                    <div>
+                      <div className="font-medium">{file.title}</div>
+                      {file.description && (
+                        <div className="text-sm text-muted-foreground">
+                          {file.description}
+                        </div>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="secondary">{file.category}</Badge>
+                    <Badge variant="secondary">
+                      {getFileExtension(file.title)}
+                    </Badge>
                   </TableCell>
-                  <TableCell>{file.size}</TableCell>
-                  <TableCell>{file.downloads}</TableCell>
-                  <TableCell>{file.uploadDate}</TableCell>
+                  <TableCell>{formatFileSize(file.file_size)}</TableCell>
+                  <TableCell>
+                    <span className="font-medium">
+                      0
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    Usuário
+                  </TableCell>
+                  <TableCell>
+                    {format(new Date(file.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                  </TableCell>
                   <TableCell>
                     <div className="flex gap-2">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => handleShowDownloads(file.id, file.title)}
+                      >
+                        <BarChart3 className="h-3 w-3" />
+                      </Button>
                       <Button size="sm" variant="outline">
                         <Download className="h-3 w-3" />
                       </Button>
                       <Button size="sm" variant="outline">
-                        Editar
+                        <Edit className="h-3 w-3" />
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => handleDeleteFile(file.id, file.title)}
+                        disabled={deleteFile.isPending}
+                      >
+                        <Trash2 className="h-3 w-3" />
                       </Button>
                     </div>
                   </TableCell>
                 </TableRow>
               ))}
+              {filteredFiles.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                    Nenhum arquivo encontrado
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
+
+      <DownloadDetailsModal
+        isOpen={!!selectedFileId}
+        onClose={() => {
+          setSelectedFileId(null);
+          setSelectedFileName("");
+        }}
+        fileId={selectedFileId || ""}
+        fileName={selectedFileName}
+      />
     </div>
   );
 };

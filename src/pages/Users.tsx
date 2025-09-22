@@ -6,42 +6,18 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { UserPlus, Search, Shield, User, Settings } from "lucide-react";
+import { useUsers, useUpdateUserRole } from "@/hooks/useUsers";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 const Users = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const { data: users, isLoading } = useUsers();
+  const updateUserRole = useUpdateUserRole();
 
-  // Mock data - em uma implementação real viria do Supabase
-  const users = [
-    {
-      id: 1,
-      name: "João Silva",
-      email: "joao@empresa.com",
-      role: "admin",
-      status: "ativo",
-      lastLogin: "2024-01-22",
-    },
-    {
-      id: 2,
-      name: "Maria Santos",
-      email: "maria@empresa.com", 
-      role: "operator",
-      status: "ativo",
-      lastLogin: "2024-01-21",
-    },
-    {
-      id: 3,
-      name: "Pedro Costa",
-      email: "pedro@empresa.com",
-      role: "user",
-      status: "inativo",
-      lastLogin: "2024-01-15",
-    },
-  ];
-
-  const filteredUsers = users.filter(user =>
-    user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredUsers = users?.filter(user =>
+    user.full_name.toLowerCase().includes(searchTerm.toLowerCase())
+  ) || [];
 
   const getRoleIcon = (role: string) => {
     switch (role) {
@@ -69,6 +45,20 @@ const Users = () => {
     );
   };
 
+  const handleRoleChange = (userId: string, newRole: "admin" | "operator" | "user") => {
+    if (window.confirm(`Tem certeza que deseja alterar o papel do usuário?`)) {
+      updateUserRole.mutate({ userId, role: newRole });
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-lg">Carregando usuários...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -91,7 +81,7 @@ const Users = () => {
             <User className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{users.length}</div>
+            <div className="text-2xl font-bold">{users?.length || 0}</div>
           </CardContent>
         </Card>
         
@@ -102,19 +92,19 @@ const Users = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {users.filter(u => u.role === "admin").length}
+              {users?.filter(u => u.role === "admin").length || 0}
             </div>
           </CardContent>
         </Card>
         
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Usuários Ativos</CardTitle>
-            <User className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Operadores</CardTitle>
+            <Settings className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {users.filter(u => u.status === "ativo").length}
+              {users?.filter(u => u.role === "operator").length || 0}
             </div>
           </CardContent>
         </Card>
@@ -143,8 +133,8 @@ const Users = () => {
               <TableRow>
                 <TableHead>Usuário</TableHead>
                 <TableHead>Papel</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Último Login</TableHead>
+                <TableHead>Notificações</TableHead>
+                <TableHead>Criado em</TableHead>
                 <TableHead>Ações</TableHead>
               </TableRow>
             </TableHeader>
@@ -154,33 +144,46 @@ const Users = () => {
                   <TableCell className="flex items-center gap-3">
                     <Avatar>
                       <AvatarFallback>
-                        {user.name.split(" ").map(n => n[0]).join("")}
+                        {user.full_name.split(" ").map(n => n[0]).join("")}
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <div className="font-medium">{user.name}</div>
-                      <div className="text-sm text-muted-foreground">{user.email}</div>
+                      <div className="font-medium">{user.full_name}</div>
+                      <div className="text-sm text-muted-foreground">
+                        ID: {user.user_id.slice(0, 8)}...
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell>{getRoleBadge(user.role)}</TableCell>
                   <TableCell>
-                    <Badge variant={user.status === "ativo" ? "default" : "secondary"}>
-                      {user.status}
+                    <Badge variant={user.receive_notifications ? "default" : "secondary"}>
+                      {user.receive_notifications ? "Ativadas" : "Desativadas"}
                     </Badge>
                   </TableCell>
-                  <TableCell>{user.lastLogin}</TableCell>
+                  <TableCell>
+                    {format(new Date(user.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                  </TableCell>
                   <TableCell>
                     <div className="flex gap-2">
-                      <Button size="sm" variant="outline">
-                        Editar
-                      </Button>
-                      <Button size="sm" variant="outline">
-                        Permissões
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => handleRoleChange(user.user_id, user.role === "admin" ? "user" : "admin")}
+                        disabled={updateUserRole.isPending}
+                      >
+                        {user.role === "admin" ? "Remover Admin" : "Tornar Admin"}
                       </Button>
                     </div>
                   </TableCell>
                 </TableRow>
               ))}
+              {filteredUsers.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                    Nenhum usuário encontrado
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>

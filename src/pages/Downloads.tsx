@@ -5,57 +5,39 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Download, Search, Calendar, TrendingUp, FileText } from "lucide-react";
+import { useDownloads, useDownloadStats } from "@/hooks/useDownloads";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 const Downloads = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const { data: downloads, isLoading } = useDownloads();
+  const { data: stats } = useDownloadStats();
 
-  // Mock data - em uma implementação real viria do Supabase
-  const downloads = [
-    {
-      id: 1,
-      fileName: "manual-usuario.pdf",
-      userName: "João Silva",
-      userEmail: "joao@empresa.com",
-      downloadDate: "2024-01-22 14:30",
-      fileSize: "2.3 MB",
-      category: "Documentos",
-      ip: "192.168.1.100",
-    },
-    {
-      id: 2,
-      fileName: "logo-empresa.png",
-      userName: "Maria Santos",
-      userEmail: "maria@empresa.com",
-      downloadDate: "2024-01-22 13:15",
-      fileSize: "1.8 MB",
-      category: "Imagens",
-      ip: "192.168.1.101",
-    },
-    {
-      id: 3,
-      fileName: "video-tutorial.mp4",
-      userName: "Pedro Costa",
-      userEmail: "pedro@empresa.com",
-      downloadDate: "2024-01-22 10:45",
-      fileSize: "25.6 MB",
-      category: "Vídeos",
-      ip: "192.168.1.102",
-    },
-  ];
+  const filteredDownloads = downloads?.filter(download =>
+    download.files.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    download.profiles.full_name.toLowerCase().includes(searchTerm.toLowerCase())
+  ) || [];
 
-  const filteredDownloads = downloads.filter(download =>
-    download.fileName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    download.userName.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const formatFileSize = (bytes?: number) => {
+    if (!bytes) return "N/A";
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(1024));
+    return `${(bytes / Math.pow(1024, i)).toFixed(1)} ${sizes[i]}`;
+  };
 
-  const todayDownloads = downloads.filter(d => 
-    d.downloadDate.startsWith("2024-01-22")
-  ).length;
+  const getFileType = (filename: string) => {
+    const ext = filename.split('.').pop()?.toUpperCase();
+    return ext || 'FILE';
+  };
 
-  const totalSize = downloads.reduce((acc, d) => {
-    const size = parseFloat(d.fileSize.replace(/[^\d.]/g, ''));
-    return acc + size;
-  }, 0);
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-lg">Carregando downloads...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -79,9 +61,9 @@ const Downloads = () => {
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{todayDownloads}</div>
+            <div className="text-2xl font-bold">{stats?.todayCount || 0}</div>
             <p className="text-xs text-muted-foreground">
-              +2% em relação a ontem
+              Downloads realizados hoje
             </p>
           </CardContent>
         </Card>
@@ -92,7 +74,20 @@ const Downloads = () => {
             <Download className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{downloads.length}</div>
+            <div className="text-2xl font-bold">{stats?.totalCount || 0}</div>
+            <p className="text-xs text-muted-foreground">
+              Todos os downloads
+            </p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Usuários Únicos</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats?.uniqueUsersThisMonth || 0}</div>
             <p className="text-xs text-muted-foreground">
               Este mês
             </p>
@@ -101,26 +96,13 @@ const Downloads = () => {
         
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Volume Total</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalSize.toFixed(1)} MB</div>
-            <p className="text-xs text-muted-foreground">
-              Transferido hoje
-            </p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Arquivo Popular</CardTitle>
+            <CardTitle className="text-sm font-medium">Últimos Downloads</CardTitle>
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">manual-usuario.pdf</div>
+            <div className="text-2xl font-bold">{downloads?.length || 0}</div>
             <p className="text-xs text-muted-foreground">
-              Mais baixado
+              Registros recentes
             </p>
           </CardContent>
         </Card>
@@ -149,10 +131,9 @@ const Downloads = () => {
               <TableRow>
                 <TableHead>Arquivo</TableHead>
                 <TableHead>Usuário</TableHead>
-                <TableHead>Categoria</TableHead>
+                <TableHead>Tipo</TableHead>
                 <TableHead>Tamanho</TableHead>
                 <TableHead>Data/Hora</TableHead>
-                <TableHead>IP</TableHead>
                 <TableHead>Ações</TableHead>
               </TableRow>
             </TableHeader>
@@ -160,23 +141,31 @@ const Downloads = () => {
               {filteredDownloads.map((download) => (
                 <TableRow key={download.id}>
                   <TableCell className="font-medium">
-                    {download.fileName}
+                    {download.files.title}
                   </TableCell>
                   <TableCell>
                     <div>
-                      <div className="font-medium">{download.userName}</div>
+                      <div className="font-medium">{download.profiles.full_name}</div>
                       <div className="text-sm text-muted-foreground">
-                        {download.userEmail}
+                        ID: {download.user_id.slice(0, 8)}...
                       </div>
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="secondary">{download.category}</Badge>
+                    <Badge variant="secondary">
+                      {getFileType(download.files.title)}
+                    </Badge>
                   </TableCell>
-                  <TableCell>{download.fileSize}</TableCell>
-                  <TableCell>{download.downloadDate}</TableCell>
-                  <TableCell className="font-mono text-sm">
-                    {download.ip}
+                  <TableCell>{formatFileSize(download.files.file_size)}</TableCell>
+                  <TableCell>
+                    <div>
+                      <div>
+                        {format(new Date(download.downloaded_at), "dd/MM/yyyy", { locale: ptBR })}
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        {format(new Date(download.downloaded_at), "HH:mm:ss", { locale: ptBR })}
+                      </div>
+                    </div>
                   </TableCell>
                   <TableCell>
                     <Button size="sm" variant="outline">
@@ -185,6 +174,13 @@ const Downloads = () => {
                   </TableCell>
                 </TableRow>
               ))}
+              {filteredDownloads.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                    Nenhum download encontrado
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>

@@ -4,43 +4,37 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Users, Search, Plus, FolderOpen } from "lucide-react";
+import { Users, Search, Plus, FolderOpen, Trash2 } from "lucide-react";
+import { useGroups, useDeleteGroup } from "@/hooks/useGroups";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 const Groups = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const { data: groups, isLoading } = useGroups();
+  const deleteGroup = useDeleteGroup();
 
-  // Mock data - em uma implementação real viria do Supabase
-  const groups = [
-    {
-      id: 1,
-      name: "Administradores",
-      description: "Grupo com acesso total ao sistema",
-      userCount: 2,
-      permissions: ["read", "write", "delete", "admin"],
-      createdAt: "2024-01-10",
-    },
-    {
-      id: 2,
-      name: "Operadores",
-      description: "Grupo com permissões de operação",
-      userCount: 5,
-      permissions: ["read", "write"],
-      createdAt: "2024-01-12",
-    },
-    {
-      id: 3,
-      name: "Usuários",
-      description: "Grupo básico para usuários finais",
-      userCount: 15,
-      permissions: ["read"],
-      createdAt: "2024-01-15",
-    },
-  ];
-
-  const filteredGroups = groups.filter(group =>
+  const filteredGroups = groups?.filter(group =>
     group.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    group.description.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+    group.description?.toLowerCase().includes(searchTerm.toLowerCase())
+  ) || [];
+
+  const handleDeleteGroup = async (groupId: string, groupName: string) => {
+    if (window.confirm(`Tem certeza que deseja excluir o grupo "${groupName}"?`)) {
+      deleteGroup.mutate(groupId);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-lg">Carregando grupos...</div>
+      </div>
+    );
+  }
+
+  const totalUsers = groups?.reduce((acc, group) => acc + (group.user_count || 0), 0) || 0;
+  const avgUsersPerGroup = groups?.length ? Math.round(totalUsers / groups.length) : 0;
 
   return (
     <div className="space-y-6">
@@ -64,7 +58,7 @@ const Groups = () => {
             <FolderOpen className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{groups.length}</div>
+            <div className="text-2xl font-bold">{groups?.length || 0}</div>
           </CardContent>
         </Card>
         
@@ -74,9 +68,7 @@ const Groups = () => {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {groups.reduce((acc, group) => acc + group.userCount, 0)}
-            </div>
+            <div className="text-2xl font-bold">{totalUsers}</div>
           </CardContent>
         </Card>
         
@@ -86,9 +78,7 @@ const Groups = () => {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {Math.round(groups.reduce((acc, group) => acc + group.userCount, 0) / groups.length)}
-            </div>
+            <div className="text-2xl font-bold">{avgUsersPerGroup}</div>
           </CardContent>
         </Card>
       </div>
@@ -117,7 +107,7 @@ const Groups = () => {
                 <TableHead>Nome do Grupo</TableHead>
                 <TableHead>Descrição</TableHead>
                 <TableHead>Usuários</TableHead>
-                <TableHead>Permissões</TableHead>
+                <TableHead>Criado por</TableHead>
                 <TableHead>Criado em</TableHead>
                 <TableHead>Ações</TableHead>
               </TableRow>
@@ -127,23 +117,19 @@ const Groups = () => {
                 <TableRow key={group.id}>
                   <TableCell className="font-medium">{group.name}</TableCell>
                   <TableCell className="text-muted-foreground">
-                    {group.description}
+                    {group.description || "Sem descrição"}
                   </TableCell>
                   <TableCell>
                     <Badge variant="secondary">
-                      {group.userCount} usuários
+                      {group.user_count || 0} usuários
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <div className="flex gap-1 flex-wrap">
-                      {group.permissions.map((permission) => (
-                        <Badge key={permission} variant="outline" className="text-xs">
-                          {permission}
-                        </Badge>
-                      ))}
-                    </div>
+                    {group.profiles?.full_name || "Usuário"}
                   </TableCell>
-                  <TableCell>{group.createdAt}</TableCell>
+                  <TableCell>
+                    {format(new Date(group.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                  </TableCell>
                   <TableCell>
                     <div className="flex gap-2">
                       <Button size="sm" variant="outline">
@@ -152,10 +138,25 @@ const Groups = () => {
                       <Button size="sm" variant="outline">
                         Membros
                       </Button>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => handleDeleteGroup(group.id, group.name)}
+                        disabled={deleteGroup.isPending}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>
               ))}
+              {filteredGroups.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                    Nenhum grupo encontrado
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>
