@@ -15,6 +15,13 @@ import { LogOut } from "lucide-react";
 import Index from "@/pages/Index";
 import Auth from "@/pages/Auth";
 import NotFound from "@/pages/NotFound";
+import Files from "@/pages/Files";
+import Users from "@/pages/Users";
+import Groups from "@/pages/Groups";
+import Categories from "@/pages/Categories";
+import Downloads from "@/pages/Downloads";
+import Reports from "@/pages/Reports";
+import Settings from "@/pages/Settings";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -71,13 +78,13 @@ function AuthenticatedApp() {
           <main className="flex-1 p-6">
             <Routes>
               <Route path="/" element={<Index />} />
-              <Route path="/files" element={<div>Arquivos</div>} />
-              <Route path="/users" element={<div>Usuários</div>} />
-              <Route path="/groups" element={<div>Grupos</div>} />
-              <Route path="/categories" element={<div>Categorias</div>} />
-              <Route path="/downloads" element={<div>Downloads</div>} />
-              <Route path="/reports" element={<div>Relatórios</div>} />
-              <Route path="/settings" element={<div>Configurações</div>} />
+              <Route path="/files" element={<Files />} />
+              <Route path="/users" element={<Users />} />
+              <Route path="/groups" element={<Groups />} />
+              <Route path="/categories" element={<Categories />} />
+              <Route path="/downloads" element={<Downloads />} />
+              <Route path="/reports" element={<Reports />} />
+              <Route path="/settings" element={<Settings />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </main>
