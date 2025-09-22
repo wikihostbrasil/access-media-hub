@@ -9,12 +9,15 @@ import { useFiles, useDeleteFile } from "@/hooks/useFiles";
 import { DownloadDetailsModal } from "@/components/DownloadDetailsModal";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { UploadFileDialog } from "@/components/dialogs/UploadFileDialog";
+import { supabase } from "@/integrations/supabase/client";
 
 const Files = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedFileId, setSelectedFileId] = useState<string | null>(null);
   const [selectedFileName, setSelectedFileName] = useState("");
 
+  const [openUpload, setOpenUpload] = useState(false);
   const { data: files, isLoading } = useFiles();
   const deleteFile = useDeleteFile();
 
@@ -46,6 +49,22 @@ const Files = () => {
     }
   };
 
+  const handleDirectDownload = async (file: { id: string; file_url: string; title?: string }) => {
+    try {
+      const { data: userResp } = await supabase.auth.getUser();
+      const user = userResp.user;
+      const { data, error } = await supabase.storage.from("files").createSignedUrl(file.file_url, 60);
+      if (error) throw error;
+      if (data?.signedUrl) {
+        window.open(data.signedUrl, "_blank");
+      }
+      if (user) {
+        await supabase.from("downloads").insert({ file_id: file.id, user_id: user.id });
+      }
+    } catch (e) {
+      // noop
+    }
+  };
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -64,7 +83,7 @@ const Files = () => {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button>
+          <Button onClick={() => setOpenUpload(true)}>
             <Upload className="h-4 w-4 mr-2" />
             Upload Arquivo
           </Button>
@@ -145,7 +164,7 @@ const Files = () => {
                       >
                         <BarChart3 className="h-3 w-3" />
                       </Button>
-                      <Button size="sm" variant="outline">
+                      <Button size="sm" variant="outline" onClick={() => handleDirectDownload(file)}>
                         <Download className="h-3 w-3" />
                       </Button>
                       <Button size="sm" variant="outline">
@@ -184,6 +203,8 @@ const Files = () => {
         fileId={selectedFileId || ""}
         fileName={selectedFileName}
       />
+
+      <UploadFileDialog open={openUpload} onOpenChange={setOpenUpload} />
     </div>
   );
 };

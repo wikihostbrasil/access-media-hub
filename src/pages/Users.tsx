@@ -9,9 +9,11 @@ import { UserPlus, Search, Shield, User, Settings } from "lucide-react";
 import { useUsers, useUpdateUserRole } from "@/hooks/useUsers";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { InviteUserDialog } from "@/components/dialogs/InviteUserDialog";
 
 const Users = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [openInvite, setOpenInvite] = useState(false);
   const { data: users, isLoading } = useUsers();
   const updateUserRole = useUpdateUserRole();
 
@@ -68,7 +70,7 @@ const Users = () => {
             Gerencie usuários, permissões e acessos do sistema
           </p>
         </div>
-        <Button>
+        <Button onClick={() => setOpenInvite(true)}>
           <UserPlus className="h-4 w-4 mr-2" />
           Convidar Usuário
         </Button>
