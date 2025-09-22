@@ -2,10 +2,17 @@
 include_once '../config/cors.php';
 include_once '../config/database.php';
 include_once '../config/jwt.php';
+include_once '../config/security.php';
+include_once '../config/environment.php';
+
+SecurityHeaders::setHeaders();
 
 $database = new Database();
 $db = $database->getConnection();
 $jwt = new JWTHandler();
+$securityLogger = new SecurityLogger($db);
+
+$ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
 
 // Validate token
 $token = $jwt->getBearerToken();
@@ -17,6 +24,7 @@ if (!$token) {
 
 $user_data = $jwt->validateToken($token);
 if (!$user_data) {
+    $securityLogger->logSecurityEvent('invalid_token', $ip, null, 'File upload attempt');
     http_response_code(401);
     echo json_encode(array("error" => "Token inválido"));
     exit();
@@ -36,6 +44,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!isset($_FILES['file'])) {
         http_response_code(400);
         echo json_encode(array("error" => "Nenhum arquivo enviado"));
+        exit();
+    }
+    
+    // Validate file
+    $validationErrors = FileValidator::validateFile($_FILES['file']);
+    if (!empty($validationErrors)) {
+        $securityLogger->logSecurityEvent('invalid_file_upload', $ip, $user_data['id'], implode(', ', $validationErrors));
+        http_response_code(400);
+        echo json_encode(array("error" => "Arquivo inválido", "details" => $validationErrors));
         exit();
     }
 

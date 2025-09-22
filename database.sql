@@ -158,6 +158,30 @@ CREATE TABLE app_settings (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
+-- Tabela para controle de rate limiting
+CREATE TABLE rate_limits (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    ip VARCHAR(45) NOT NULL,
+    endpoint VARCHAR(100) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_ip_endpoint_time (ip, endpoint, created_at)
+);
+
+-- Tabela para logs de segurança
+CREATE TABLE security_logs (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    event_type VARCHAR(50) NOT NULL,
+    ip_address VARCHAR(45) NOT NULL,
+    user_id VARCHAR(36) NULL,
+    details TEXT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_event_type (event_type),
+    INDEX idx_ip (ip_address),
+    INDEX idx_user (user_id),
+    INDEX idx_created_at (created_at),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
 -- Insert default admin user (password: admin123)
 INSERT INTO users (id, email, password_hash, email_verified) VALUES
 ('admin-user-id', 'admin@admin.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', TRUE);

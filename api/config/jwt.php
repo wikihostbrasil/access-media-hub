@@ -4,13 +4,14 @@ use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 
 class JWTHandler {
-    private $secret_key = "your-secret-key-here";
+    private $secret_key;
     private $issuer = "arquivo-manager";
     private $audience = "arquivo-manager-users";
     private $issued_at;
     private $expiration_time;
 
     public function __construct() {
+        $this->secret_key = $_ENV['JWT_SECRET'] ?? 'arquivo_manager_jwt_secret_key_' . bin2hex(random_bytes(32));
         $this->issued_at = time();
         $this->expiration_time = $this->issued_at + (24 * 60 * 60); // 24 hours
     }
